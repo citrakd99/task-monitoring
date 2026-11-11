@@ -1,0 +1,11 @@
+{
+  "name": "task-monitoring",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Task MonitorinG — PWA Kanban/Kalender/Who-What dengan Google Sheets",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "preview": "node tools/dev-server.js"
+  }
+}

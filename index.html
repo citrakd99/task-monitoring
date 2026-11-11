@@ -1,0 +1,113 @@
+<!doctype html>
+<!-- File ID: F01 | Revision: R2 -->
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Task MonitorinG">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data:; style-src 'self'; script-src 'self'; manifest-src 'self'; worker-src 'self'">
+  <title>Task MonitorinG</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <div id="offline" class="banner" hidden>OFFLINE — menampilkan data terakhir (hanya baca)</div>
+
+  <section id="loginView" class="login" hidden>
+    <div class="login-card">
+      <img src="icons/icon-192.png" alt="" width="72" height="72">
+      <h1>Task MonitorinG</h1>
+      <form id="loginForm" autocomplete="on">
+        <label>Nama<select id="loginNama" required></select></label>
+        <label>PIN<input id="loginPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required autocomplete="current-password"></label>
+        <button type="submit" class="btn primary block">Masuk</button>
+        <p id="loginMsg" class="msg" role="alert"></p>
+      </form>
+    </div>
+  </section>
+
+  <section id="appView" hidden>
+    <header class="topbar">
+      <h1>Task MonitorinG</h1>
+      <div class="topbar-r">
+        <button id="btnInstall" type="button" class="install-btn" hidden>⤓ Pasang</button>
+        <button id="btnPdf" type="button" class="install-btn" title="Export PDF">PDF</button>
+        <span id="meName" class="me-name"></span>
+        <button id="btnRefresh" type="button" class="icon-btn" title="Muat ulang" aria-label="Muat ulang">⟳</button>
+        <button id="btnLogout" type="button" class="icon-btn" title="Keluar" aria-label="Keluar">⏻</button>
+      </div>
+    </header>
+
+    <div class="filters">
+      <select id="fSiapa" aria-label="Filter siapa"></select>
+      <select id="fPrio" aria-label="Filter prioritas"></select>
+      <select id="fStatus" aria-label="Filter status"></select>
+      <label class="chk" id="fAllWrap"><input type="checkbox" id="fAll"> Tampilkan semua</label>
+    </div>
+
+    <main id="view"></main>
+
+    <nav class="tabs">
+      <button type="button" data-view="kanban"><b>▦</b><span>Kanban</span></button>
+      <button type="button" data-view="calendar"><b>▤</b><span>Kalender</span></button>
+      <button type="button" data-view="whowhat"><b>☰</b><span>Who-What</span></button>
+    </nav>
+    <button id="fab" type="button" class="fab" aria-label="Task baru">+</button>
+  </section>
+
+  <dialog id="taskDlg">
+    <form id="taskForm" novalidate>
+      <h2 id="taskDlgTitle">Task baru</h2>
+      <label>Apa<textarea name="apa" rows="3" maxlength="500" required></textarea></label>
+      <div class="row2">
+        <label>Siapa<select name="siapa" required></select></label>
+        <label>Prioritas<select name="prioritas" required></select></label>
+      </div>
+      <div class="row2">
+        <label>Mulai<input type="date" name="mulai" required></label>
+        <label>Selesai<input type="date" name="selesai" required></label>
+      </div>
+      <label>Catatan<textarea name="catatan" rows="2" maxlength="1000"></textarea></label>
+      <p class="msg" id="taskMsg" role="alert"></p>
+      <div class="actions">
+        <button type="button" class="btn" data-close>Batal</button>
+        <button type="submit" class="btn primary" id="taskSave">Simpan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="detailDlg">
+    <div class="detail">
+      <div id="detailBody"></div>
+      <label id="noteWrap">Catatan perubahan (opsional)<input id="moveNote" maxlength="500" placeholder="mis. alasan revisi / reject"></label>
+      <div id="moveBtns" class="move-btns"></div>
+      <p class="msg" id="detailMsg" role="alert"></p>
+      <div class="actions">
+        <button type="button" class="btn" data-close>Tutup</button>
+        <button type="button" class="btn" id="btnPdfOne">PDF</button>
+        <button type="button" class="btn" id="btnEdit">Edit</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="pdfDlg">
+    <div class="detail">
+      <h2>Export PDF</h2>
+      <button type="button" class="btn primary block" id="pdfAll"></button>
+      <button type="button" class="btn block" id="pdfFiltered"></button>
+      <p class="hint">Untuk satu kartu saja: buka kartunya, lalu tekan tombol <b>PDF</b>.</p>
+      <div class="actions">
+        <button type="button" class="btn" data-close>Tutup</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
