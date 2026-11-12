@@ -82,6 +82,19 @@ for (const [apa, siapa, a, b, steps, prioritas, note = ''] of PLAN_SEED) {
   for (const to of steps) t = gas.post({ action: 'move', token, id: t.id, version: t.version, to, note: to === 'NOTE' ? note : '' }).data;
 }
 
+// Mode pribadi (hanya terlihat oleh Ahad): [jenis, pekerjaan, PIC bebas, mulai, selesai, jalur status, catatan With Note]
+const PRIVATE_SEED = [
+  ['PLAN', 'Pasang rak display toko', 'Pak Joko (tukang)', 0, 4, [], ''],
+  ['PLAN', 'Kirim kain mori 200 m', 'Vendor Kain Solo', -3, -1, ['NOTE'], 'Janji kirim ulang Jumat'],
+  ['PLAN', 'Servis kompor malam', 'Pak Joko (tukang)', -1, 2, ['READY'], ''],
+  ['DOC', 'Perpanjang izin usaha', 'Notaris Bu Rina', -2, 6, ['PROGRESS'], ''],
+];
+for (const [jenis, apa, siapa, a, b, steps, note] of PRIVATE_SEED) {
+  const token = tokenOf('Ahad');
+  let t = gas.post({ action: 'create', token, task: { pribadi: true, jenis, apa, siapa, mulai: day(a), selesai: day(b) } }).data;
+  for (const to of steps) t = gas.post({ action: 'move', token, id: t.id, version: t.version, to, note: to === 'NOTE' ? note : '' }).data;
+}
+
 /* ---------------- http ---------------- */
 
 function readBody(req) {

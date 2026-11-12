@@ -1,6 +1,6 @@
 // File ID: F07 | Revision: R1 — Service Worker
 // NAIKKAN versi ini setiap rilis agar HP user mengambil file baru.
-const CACHE = 'tm-v5';
+const CACHE = 'tm-v6';
 const SHELL = [
   './',
   './index.html',

@@ -1,6 +1,6 @@
-// File ID: F02 | Revision: R3 — controller utama
+// File ID: F02 | Revision: R4 — controller utama
 import { api, session, clearSession, cachedTasks, cachedUsers, apiConfigured } from './api.js';
-import { STATUSES, STATUS_META, TRANSITIONS, ACTIVE, todayWIB, canEdit, canMove, isOverdue, fmtRange, filterTasks, el, pill, PRIORITIES, PRIORITY_META, prioOf, prioFlag, PLAN_STATUSES, ALL_STATUSES, FINAL, JENIS_META, jenisOf } from './util.js';
+import { STATUSES, STATUS_META, TRANSITIONS, ACTIVE, todayWIB, canEdit, canMove, isOverdue, fmtRange, filterTasks, el, pill, PRIORITIES, PRIORITY_META, prioOf, prioFlag, PLAN_STATUSES, ALL_STATUSES, FINAL, JENIS_META, jenisOf, isActive } from './util.js';
 import { buildListPdf, buildTaskPdf, savePdf } from './pdf.js';
 import { renderKanban } from './kanban.js';
 import { renderCalendar } from './calendar.js';
@@ -14,6 +14,7 @@ const S = {
   users: [],
   today: todayWIB(),
   view: localStorage.getItem('tm_view') || 'plan',
+  mode: localStorage.getItem('tm_mode') === 'PRIBADI' ? 'PRIBADI' : 'TIM',
   f: { siapa: '', status: '', prio: '', jenis: '', note: localStorage.getItem('tm_note') === '1', all: false },
   offline: !navigator.onLine,
   current: null,
@@ -139,11 +140,14 @@ async function refresh(force = false) {
 }
 
 // Tab 'plan' = kanban Plan Task, 'kanban' = kanban Dokumen; Kalender & Who-What memuat keduanya (bisa difilter).
+// Mode TIM = task bersama (PIC dari daftar user). Mode PRIBADI = catatan sendiri (PIC diketik bebas, hanya pemilik yang melihat).
+const pribadi = () => S.mode === 'PRIBADI';
+const modeTasks = () => S.tasks.filter((t) => (pribadi() ? t.pemilik === S.me : !t.pemilik));
 const mixed = () => S.view === 'calendar' || S.view === 'whowhat';
 const viewJenis = () => (S.view === 'plan' ? 'PLAN' : S.view === 'kanban' ? 'DOC' : S.f.jenis);
 const statusOptions = () => (S.f.jenis ? JENIS_META[S.f.jenis].statuses : ALL_STATUSES);
 const activeFilter = () => ({ siapa: S.f.siapa, prioritas: S.f.prio, jenis: viewJenis(), status: mixed() ? S.f.status : '' });
-const visibleTasks = () => filterTasks(S.tasks, activeFilter());
+const visibleTasks = () => filterTasks(modeTasks(), activeFilter());
 
 function render() {
   if (!S.me) return;
@@ -151,10 +155,12 @@ function render() {
   $('fab').hidden = S.offline;
 
   // filter bar
-  const names = [...new Set([...S.users, ...S.tasks.map((t) => t.siapa)])].sort();
+  const names = [...new Set([...(pribadi() ? [] : S.users), ...modeTasks().map((t) => t.siapa)])].sort();
+  document.body.classList.toggle('pribadi', pribadi());
+  document.querySelectorAll('#modeSeg button').forEach((b) => b.classList.toggle('active', b.dataset.mode === S.mode));
   const fs = $('fSiapa');
   const keep = S.f.siapa;
-  fillSelect(fs, names.map((n) => [n, n === S.me ? `${n} (saya)` : n]), 'Semua orang');
+  fillSelect(fs, names.map((n) => [n, n === S.me && !pribadi() ? `${n} (saya)` : n]), pribadi() ? 'Semua PIC' : 'Semua orang');
   fs.value = names.includes(keep) ? keep : '';
   S.f.siapa = fs.value;
   const so = statusOptions();
@@ -179,11 +185,11 @@ function render() {
   const root = $('view');
   root.dataset.view = S.view;
   if (S.view === 'calendar') renderCalendar(root, { ...ctx, statuses: so });
-  else if (S.view === 'whowhat') renderWhoWhat(root, { ...ctx, users: S.f.siapa ? [S.f.siapa] : S.users, showAll: S.f.all });
+  else if (S.view === 'whowhat') renderWhoWhat(root, { ...ctx, users: S.f.siapa ? [S.f.siapa] : pribadi() ? [] : S.users, showAll: S.f.all, onPdf: exportPicPdf });
   else if (S.view === 'plan') renderKanban(root, { ...ctx, statuses: PLAN_STATUSES });
   else {
     // kanban dokumen; opsional menampilkan Plan Task With Note sebagai kolom tamu
-    const extra = S.f.note ? [{ status: 'NOTE', tasks: filterTasks(S.tasks, { siapa: S.f.siapa, prioritas: S.f.prio, jenis: 'PLAN', status: 'NOTE' }) }] : [];
+    const extra = S.f.note ? [{ status: 'NOTE', tasks: filterTasks(modeTasks(), { siapa: S.f.siapa, prioritas: S.f.prio, jenis: 'PLAN', status: 'NOTE' }) }] : [];
     renderKanban(root, { ...ctx, statuses: STATUSES, extra });
   }
 }
@@ -261,7 +267,7 @@ function moveFromDrag(t, to) {
 function formLabels(jenis) {
   const p = jenis === 'PLAN';
   $('lblApa').textContent = p ? 'Pekerjaan' : 'Apa (dokumen)';
-  $('lblSiapa').textContent = p ? 'PIC' : 'Siapa';
+  $('lblSiapa').textContent = S.formPribadi ? 'PIC (ketik sendiri)' : p ? 'PIC' : 'Siapa';
   $('lblMulai').textContent = p ? 'Plan Start' : 'Mulai';
   $('lblSelesai').textContent = p ? 'Plan Finish' : 'Selesai';
   $('taskDlgTitle').textContent = `${S.editing ? 'Edit' : 'Tambah'} ${p ? 'plan task' : 'task dokumen'}`;
@@ -271,6 +277,11 @@ function openForm(t = null) {
   S.editing = t;
   const f = $('taskForm');
   const today = todayWIB();
+  S.formPribadi = t ? !!t.pemilik : pribadi();
+  f.siapa.hidden = S.formPribadi;
+  f.siapaTxt.hidden = !S.formPribadi;
+  f.siapaTxt.value = t ? t.siapa : '';
+  fillSelect($('picList'), [...new Set(modeTasks().map((x) => x.siapa))].sort().map((n) => [n, n]));
   const users = [...S.users];
   if (t && !users.includes(t.siapa)) users.push(t.siapa);
   fillSelect(f.siapa, users.map((u) => [u, u]));
@@ -296,13 +307,15 @@ async function onSaveTask(e) {
   const task = {
     jenis: f.jenis.value,
     apa: f.apa.value.trim(),
-    siapa: f.siapa.value,
+    siapa: S.formPribadi ? f.siapaTxt.value.trim() : f.siapa.value,
+    pribadi: S.formPribadi,
     prioritas: f.prioritas.value,
     mulai: f.mulai.value,
     selesai: f.selesai.value,
     catatan: f.catatan.value.trim(),
   };
   if (!task.apa) return ($('taskMsg').textContent = task.jenis === 'PLAN' ? 'Pekerjaan wajib diisi' : 'Apa wajib diisi');
+  if (!task.siapa) return ($('taskMsg').textContent = 'PIC wajib diisi');
   if (task.selesai < task.mulai) return ($('taskMsg').textContent = 'Tanggal selesai tidak boleh sebelum tanggal mulai');
   const btn = $('taskSave');
   setBusy(btn, true);
@@ -310,7 +323,7 @@ async function onSaveTask(e) {
     if (S.editing) await api.update(S.editing.id, S.editing.version, task);
     else {
       const made = await api.create(task);
-      if (task.jenis === 'PLAN' && made && made.jenis !== 'PLAN') toast('Server masih versi lama: tempel ulang Code.gs lalu deploy New version', true);
+      if (made && ((task.jenis === 'PLAN' && made.jenis !== 'PLAN') || (task.pribadi && !made.pemilik))) toast('Server masih versi lama: tempel ulang Code.gs lalu deploy New version', true);
     }
     closeDialogs();
     toast(S.editing ? 'Task diperbarui' : 'Task dibuat');
@@ -337,21 +350,30 @@ async function exportPdf(build, name) {
   }
 }
 
+const modeLabel = () => (pribadi() ? ' (catatan pribadi)' : '');
+
+/** Who-What: PDF untuk satu PIC, mengikuti filter yang sedang aktif. */
+function exportPicPdf(nama) {
+  let tasks = filterTasks(modeTasks(), { ...activeFilter(), siapa: nama });
+  if (!S.f.all) tasks = tasks.filter(isActive);
+  exportPdf(() => buildListPdf(tasks, { today: S.today, subtitle: `PIC: ${nama}${S.f.all ? '' : ' - task aktif'}` + modeLabel() }), `pic-${slug(nama)}-${S.today}.pdf`);
+}
+
 function openPdfDlg() {
   const f = activeFilter();
   const shown = visibleTasks();
-  const plan = filterTasks(S.tasks, { jenis: 'PLAN' });
-  const docs = filterTasks(S.tasks, { jenis: 'DOC' });
+  const plan = filterTasks(modeTasks(), { jenis: 'PLAN' });
+  const docs = filterTasks(modeTasks(), { jenis: 'DOC' });
   const parts = [mixed() && f.jenis && 'Kanban ' + JENIS_META[f.jenis].label, f.siapa, f.prioritas && PRIORITY_META[f.prioritas].label, f.status && STATUS_META[f.status].label].filter(Boolean);
-  const list = (tasks, subtitle, name) => () => exportPdf(() => buildListPdf(tasks, { today: S.today, subtitle }), `${name}-${S.today}.pdf`);
+  const list = (tasks, subtitle, name) => () => exportPdf(() => buildListPdf(tasks, { today: S.today, subtitle: subtitle + modeLabel() }), `${name}${pribadi() ? '-pribadi' : ''}-${S.today}.pdf`);
   $('pdfPlan').textContent = `Kanban Plan Task (${plan.length})`;
   $('pdfDoc').textContent = `Kanban Dokumen (${docs.length})`;
-  $('pdfAll').textContent = `Semua: Plan Task + Dokumen (${S.tasks.length})`;
+  $('pdfAll').textContent = `Semua: Plan Task + Dokumen (${modeTasks().length})`;
   $('pdfFiltered').textContent = `Sesuai filter: ${parts.join(', ')} (${shown.length})`;
   $('pdfFiltered').hidden = !parts.length;
   $('pdfPlan').onclick = list(plan, 'Kanban Plan Task', 'plan-task');
   $('pdfDoc').onclick = list(docs, 'Kanban Tracking Dokumen', 'tracking-dokumen');
-  $('pdfAll').onclick = list(S.tasks, 'Semua task', 'task-monitoring');
+  $('pdfAll').onclick = list(modeTasks(), 'Semua task', 'task-monitoring');
   $('pdfFiltered').onclick = list(shown, 'Filter: ' + parts.join(', '), 'task-' + slug(parts.join('-')));
   $('pdfDlg').showModal();
 }
@@ -390,6 +412,14 @@ function bind() {
   $('fJenis').addEventListener('change', (e) => { S.f.jenis = e.target.value; render(); });
   $('fNote').addEventListener('change', (e) => { S.f.note = e.target.checked; localStorage.setItem('tm_note', S.f.note ? '1' : '0'); render(); });
   $('taskForm').jenis.addEventListener('change', (e) => formLabels(e.target.value));
+  document.querySelectorAll('#modeSeg button').forEach((b) =>
+    b.addEventListener('click', () => {
+      S.mode = b.dataset.mode;
+      localStorage.setItem('tm_mode', S.mode);
+      S.f.siapa = '';
+      render();
+    }),
+  );
   $('fSiapa').addEventListener('change', (e) => { S.f.siapa = e.target.value; render(); });
   fillSelect($('fPrio'), PRIORITIES.map((p) => [p, PRIORITY_META[p].label]), 'Semua prioritas');
   $('fPrio').addEventListener('change', (e) => { S.f.prio = e.target.value; render(); });

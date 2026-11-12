@@ -1,6 +1,6 @@
 /**
  * Task MonitorinG — Backend API (Google Apps Script, V8)
- * File ID: F10 | Revision: R3 (prioritas + kanban Plan Task)
+ * File ID: F10 | Revision: R4 (prioritas + kanban Plan Task + mode pribadi)
  *
  * Script ini harus "container-bound": buka Spreadsheet > Extensions > Apps Script,
  * lalu tempel seluruh isi file ini ke Code.gs.
@@ -14,12 +14,13 @@ const CFG = {
   MAX_APA: 500,
   MAX_CATATAN: 1000,
   MAX_NOTE: 500,
+  MAX_PIC: 50,
 };
 
 const SH = { TASKS: 'Tasks', USERS: 'Users', LOG: 'Log', ERR: 'ErrorLog' };
 
 const HEAD = {
-  Tasks: ['id', 'apa', 'siapa', 'mulai', 'selesai', 'status', 'catatan', 'created_by', 'created_at', 'updated_at', 'version', 'prioritas', 'jenis'],
+  Tasks: ['id', 'apa', 'siapa', 'mulai', 'selesai', 'status', 'catatan', 'created_by', 'created_at', 'updated_at', 'version', 'prioritas', 'jenis', 'pemilik'],
   Users: ['nama', 'pin_hash', 'salt', 'role', 'aktif'],
   Log: ['ts', 'task_id', 'user', 'from_status', 'to_status', 'note'],
   ErrorLog: ['ts', 'action', 'message', 'stack'],
@@ -74,7 +75,7 @@ function route_(b) {
   }
   const me = auth_(b.token);
   switch (b.action) {
-    case 'list': return { tasks: readTasks_(), today: today_() };
+    case 'list': return { tasks: readTasks_().filter((t) => !t.pemilik || t.pemilik === me), today: today_() };
     case 'create': return withLock_(() => createTask_(me, b.task));
     case 'update': return withLock_(() => updateTask_(me, b.id, b.version, b.task));
     case 'move': return withLock_(() => moveTask_(me, b.id, b.version, b.to, b.note));
@@ -85,7 +86,10 @@ function route_(b) {
 /* ======================= TASKS ======================= */
 
 function createTask_(me, input) {
-  const t = cleanTask_(input, activeNames_(), null);
+  // Mode pribadi: hanya terlihat & bisa diubah oleh pembuatnya; PIC diketik bebas.
+  const pribadi = !!(input && input.pribadi);
+  const t = cleanTask_(input, activeNames_(), null, pribadi);
+  t.pemilik = pribadi ? me : '';
   const now = new Date().toISOString();
   t.id = Utilities.getUuid();
   t.jenis = str_(input && input.jenis).toUpperCase() || 'DOC';
@@ -105,7 +109,7 @@ function updateTask_(me, id, version, input) {
   assertOwner_(me, f.task);
   assertVersion_(f.task, version);
   if (FINAL.indexOf(f.task.status) >= 0) fail_(422, 'Task yang sudah Closed/Reject tidak bisa diedit. Reopen dulu.');
-  const clean = cleanTask_(input, activeNames_(), f.task);
+  const clean = cleanTask_(input, activeNames_(), f.task, !!f.task.pemilik);
   const t = Object.assign({}, f.task, clean, {
     updated_at: new Date().toISOString(),
     version: f.task.version + 1,
@@ -137,7 +141,7 @@ function moveTask_(me, id, version, to, note) {
   return t;
 }
 
-function cleanTask_(input, users, base) {
+function cleanTask_(input, users, base, pribadi) {
   input = input || {};
   const pick = (k) => (input[k] !== undefined ? input[k] : base ? base[k] : undefined);
   const today = today_();
@@ -153,14 +157,23 @@ function cleanTask_(input, users, base) {
   if (!t.apa) fail_(400, 'Apa (isi task) wajib diisi');
   if (t.apa.length > CFG.MAX_APA) fail_(400, 'Apa maksimal ' + CFG.MAX_APA + ' karakter');
   if (t.catatan.length > CFG.MAX_CATATAN) fail_(400, 'Catatan maksimal ' + CFG.MAX_CATATAN + ' karakter');
-  const keepOld = base && base.siapa === t.siapa; // user lama yg sudah nonaktif tetap boleh
-  if (users.indexOf(t.siapa) < 0 && !keepOld) fail_(400, 'Siapa tidak terdaftar / tidak aktif');
+  if (pribadi) {
+    if (!t.siapa) fail_(400, 'PIC wajib diisi');
+    if (t.siapa.length > CFG.MAX_PIC) fail_(400, 'PIC maksimal ' + CFG.MAX_PIC + ' karakter');
+  } else {
+    const keepOld = base && base.siapa === t.siapa; // user lama yg sudah nonaktif tetap boleh
+    if (users.indexOf(t.siapa) < 0 && !keepOld) fail_(400, 'Siapa tidak terdaftar / tidak aktif');
+  }
   if (!isDate_(t.mulai) || !isDate_(t.selesai)) fail_(400, 'Format tanggal harus YYYY-MM-DD');
   if (t.selesai < t.mulai) fail_(400, 'Tanggal selesai tidak boleh sebelum tanggal mulai');
   return t;
 }
 
 function assertOwner_(me, task) {
+  if (task.pemilik) {
+    if (task.pemilik !== me) fail_(404, 'Task tidak ditemukan'); // task pribadi orang lain: seolah tidak ada
+    return;
+  }
   if (task.siapa !== me && task.created_by !== me) fail_(403, 'Bukan task Anda (hanya pelaksana atau pembuat yang boleh mengubah)');
 }
 

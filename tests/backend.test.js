@@ -198,3 +198,32 @@ test('kanban Plan Task: status awal, transisi, With Note wajib catatan, terpisah
   const list = g.post({ action: 'list', token }).data.tasks;
   assert.deepEqual(list.map((t) => t.jenis).sort(), ['DOC', 'PLAN']);
 });
+
+test('mode pribadi: PIC bebas, hanya pemilik yang melihat & mengubah', () => {
+  const g = loadGas();
+  g.ctx.setup();
+  g.ctx.upsertUser('Ahad', '1234');
+  g.ctx.upsertUser('Budi', '5678');
+  const ahad = g.post({ action: 'login', nama: 'Ahad', pin: '1234' }).data.token;
+  const budi = g.post({ action: 'login', nama: 'Budi', pin: '5678' }).data.token;
+  const base = { apa: 'Pasang rak', mulai: '2026-01-01', selesai: '2026-01-05' };
+  // mode tim tetap menolak PIC di luar daftar user
+  assert.equal(g.post({ action: 'create', token: ahad, task: { ...base, siapa: 'Pak Joko' } }).code, 400);
+  let t = g.post({ action: 'create', token: ahad, task: { ...base, siapa: 'Pak Joko', pribadi: true, jenis: 'PLAN' } }).data;
+  assert.equal(t.pemilik, 'Ahad');
+  assert.equal(t.siapa, 'Pak Joko');
+  assert.equal(g.post({ action: 'create', token: ahad, task: { ...base, siapa: '', pribadi: true } }).code, 400);
+  assert.equal(g.post({ action: 'create', token: ahad, task: { ...base, siapa: 'x'.repeat(51), pribadi: true } }).code, 400);
+  const tim = g.post({ action: 'create', token: ahad, task: { ...base, siapa: 'Budi' } }).data;
+  assert.equal(tim.pemilik, '');
+  const ids = (token) => g.post({ action: 'list', token }).data.tasks.map((x) => x.id).sort();
+  assert.deepEqual(ids(ahad), [t.id, tim.id].sort());
+  assert.deepEqual(ids(budi), [tim.id]); // Budi tidak melihat task pribadi Ahad
+  assert.equal(g.post({ action: 'move', token: budi, id: t.id, version: t.version, to: 'READY' }).code, 404);
+  assert.equal(g.post({ action: 'update', token: budi, id: t.id, version: t.version, task: { apa: 'x' } }).code, 404);
+  t = g.post({ action: 'update', token: ahad, id: t.id, version: t.version, task: { siapa: 'Vendor Kain Solo' } }).data;
+  assert.equal(t.siapa, 'Vendor Kain Solo');
+  assert.equal(t.pemilik, 'Ahad');
+  t = g.post({ action: 'move', token: ahad, id: t.id, version: t.version, to: 'READY' }).data;
+  assert.equal(t.status, 'READY');
+});

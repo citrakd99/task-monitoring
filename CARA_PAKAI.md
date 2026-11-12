@@ -49,6 +49,8 @@ Waktu pasang ± 20 menit.
 | Fitur | Cara |
 |---|---|
 | Task baru | Ketuk tombol **+**. Tanggal mulai & selesai otomatis terisi hari ini |
+| Mode Tim / Pribadi | Tombol **👥 Tim / 🔒 Pribadi** di kiri atas. **Tim** = task bersama, PIC dipilih dari daftar user. **Pribadi** = catatan sendiri: hanya Anda yang melihat dan mengubah, PIC diketik bebas (mandor, vendor, dll.). Kedua kanban, Kalender, Who-What, dan PDF tersedia di kedua mode |
+| PDF per PIC | Di tab **Who-What**, tekan **PDF** di samping nama untuk mengekspor task orang/PIC itu saja (mengikuti filter; centang *Tampilkan semua* untuk menyertakan yang sudah closed) |
 | Kanban Plan Task | Tab **Plan Task**: monitoring pekerjaan dengan kolom **Plan Task → Plan Task Ready → Plan Task With Note → Plan Task Closed**. Isi: Pekerjaan, PIC, Plan Start – Plan Finish. Pindah ke *With Note* wajib mengisi catatan, dan catatannya tampil di kartu |
 | Kanban Dokumen | Tab **Dokumen**: tracking dokumen (Open → Progress → Submit → Revisi/Closed/Reject). Centang **Tampilkan Plan Task With Note** untuk melihat plan task ber-catatan sebagai kolom tambahan di sini |
 | Filter kanban | Di **Kalender** dan **Who-What** ada dropdown *Semua kanban / Kanban Plan Task / Kanban Dokumen*, plus filter status, orang, dan prioritas |
@@ -91,7 +93,7 @@ Kartu milik orang lain ditandai 🔒.
 
 - **Update `Code.gs`:** pilih **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**.
   Jangan pakai "New deployment", karena itu membuat URL baru dan aplikasi akan putus.
-- **Dari versi lama (tanpa prioritas / tanpa Kanban Plan Task):** setelah mengganti `Code.gs`, jalankan fungsi **`setup`** sekali lagi (menambah kolom `prioritas` dan `jenis` di sheet Tasks; data lama aman, dianggap Normal dan masuk Kanban Dokumen), lalu deploy *New version*.
+- **Dari versi lama (tanpa prioritas / Kanban Plan Task / mode pribadi):** setelah mengganti `Code.gs`, jalankan fungsi **`setup`** sekali lagi (menambah kolom `prioritas`, `jenis`, dan `pemilik` di sheet Tasks; data lama aman, dianggap Normal dan masuk Kanban Dokumen), lalu deploy *New version*.
 - **Update file web:** naikkan versi `CACHE` di `sw.js` (misalnya `tm-v1` menjadi `tm-v2`) agar HP user mengambil versi baru.
 
 ## Troubleshooting

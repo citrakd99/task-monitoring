@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- File ID: F01 | Revision: R3 -->
+<!-- File ID: F01 | Revision: R4 -->
 <html lang="id">
 <head>
   <meta charset="utf-8">
@@ -45,6 +45,10 @@
     </header>
 
     <div class="filters">
+      <div class="seg" id="modeSeg" role="group" aria-label="Mode">
+        <button type="button" data-mode="TIM" title="Task tim: terlihat semua anggota">👥 Tim</button>
+        <button type="button" data-mode="PRIBADI" title="Catatan pribadi: hanya Anda yang melihat">🔒 Pribadi</button>
+      </div>
       <select id="fSiapa" aria-label="Filter siapa"></select>
       <select id="fJenis" aria-label="Filter kanban"></select>
       <select id="fPrio" aria-label="Filter prioritas"></select>
@@ -70,7 +74,7 @@
       <label>Kanban<select name="jenis" required></select></label>
       <label><span id="lblApa">Apa</span><textarea name="apa" rows="3" maxlength="500" required></textarea></label>
       <div class="row2">
-        <label><span id="lblSiapa">Siapa</span><select name="siapa" required></select></label>
+        <label><span id="lblSiapa">Siapa</span><select name="siapa" required></select><input name="siapaTxt" list="picList" maxlength="50" placeholder="ketik nama PIC" autocomplete="off" hidden><datalist id="picList"></datalist></label>
         <label>Prioritas<select name="prioritas" required></select></label>
       </div>
       <div class="row2">

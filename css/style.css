@@ -1,4 +1,4 @@
-/* File ID: F09 | Revision: R3 */
+/* File ID: F09 | Revision: R4 */
 :root {
   --bg: #f1f5f9;
   --card: #ffffff;
@@ -203,3 +203,14 @@ dialog h2 { font-size: 1.1rem; overflow-wrap: anywhere; }
 .tag.plan { background: #cffafe; color: #155e75; }
 .tag.doc { background: #ede9fe; color: #5b21b6; }
 #pdfDlg .btn.block + .btn.block { margin-top: -.3rem; }
+
+/* ---------- mode Tim / Pribadi ---------- */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; flex: 0 0 auto; }
+.seg button { border: 0; background: transparent; padding: .45rem .8rem; font-size: .85rem; font-weight: 700; color: var(--mute); cursor: pointer; white-space: nowrap; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.active { background: var(--brand2); color: #fff; }
+body.pribadi .topbar { background: #0f766e; }
+body.pribadi .topbar h1::after { content: " · Pribadi"; font-weight: 400; opacity: .85; }
+body.pribadi .seg button.active { background: #0f766e; }
+body.pribadi .fab { background: #0f766e; box-shadow: 0 6px 18px rgba(15,118,110,.45); }
+.ww-h .btn.small { padding: .15rem .55rem; font-size: .75rem; }
