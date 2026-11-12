@@ -42,6 +42,7 @@ export function loadGas() {
     getSheetByName: (n) => sheets[n] || null,
     insertSheet: (n) => (sheets[n] = new Sheet(n)),
     getSpreadsheetTimeZone: () => 'Asia/Jakarta',
+    toast: () => {},
   };
   const ctx = {
     console,

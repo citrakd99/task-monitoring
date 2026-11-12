@@ -15,6 +15,8 @@ Waktu pasang ± 20 menit.
      Peringatan ini muncul karena script ini buatan Anda sendiri, belum diverifikasi Google, dan memang normal.
 5. Kembali ke spreadsheet dan refresh. Menu baru **Task MonitorinG** akan muncul.
 6. Pilih **Task MonitorinG → 2. Tambah user / reset PIN** untuk setiap anggota tim.
+   Jalankan dari **menu di tab spreadsheet**, bukan dari tombol Run di editor: kotak isiannya muncul di tab spreadsheet,
+   dan kalau tidak diisi, script berhenti setelah 6 menit dengan pesan "Melebihi jumlah eksekusi maksimum".
    PIN berupa 4–8 digit angka. PIN disimpan dalam bentuk hash, bukan teks asli.
 
 > Jangan share spreadsheet ini ke publik. Aplikasi mengakses data lewat script, bukan lewat link sheet.

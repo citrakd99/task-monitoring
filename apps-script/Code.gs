@@ -296,9 +296,12 @@ function setup() {
   });
   const p = PropertiesService.getScriptProperties();
   if (!p.getProperty('SECRET')) p.setProperty('SECRET', Utilities.getUuid() + Utilities.getUuid());
+  // Pakai toast (tidak menunggu klik). alert() dari editor menggantung sampai
+  // "Melebihi jumlah eksekusi maksimum" karena dialognya muncul di tab spreadsheet.
   try {
-    SpreadsheetApp.getUi().alert('Setup selesai. Lanjut: menu "Tambah user / reset PIN".');
-  } catch (_) { /* dijalankan dari editor */ }
+    ss.toast('Setup selesai. Lanjut: menu "Task MonitorinG > 2. Tambah user / reset PIN".', 'Task MonitorinG', 10);
+  } catch (_) { /* tanpa UI */ }
+  console.log('Setup selesai.');
 }
 
 function menuUpsertUser() {
