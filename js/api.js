@@ -70,6 +70,8 @@ export const api = {
   create: (task) => call('create', { task }),
   update: (id, version, task) => call('update', { id, version, task }),
   move: (id, version, to, note) => call('move', { id, version, to, note }),
+  archive: (id, version, on) => call('archive', { id, version, on }),
+  archiveAll: (status, pribadi) => call('archiveAll', { status, pribadi }),
 };
 
 export function session() {

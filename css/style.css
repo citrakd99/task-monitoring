@@ -1,4 +1,4 @@
-/* File ID: F09 | Revision: R4 */
+/* File ID: F09 | Revision: R5 */
 :root {
   --bg: #f1f5f9;
   --card: #ffffff;
@@ -214,3 +214,11 @@ body.pribadi .topbar h1::after { content: " · Pribadi"; font-weight: 400; opaci
 body.pribadi .seg button.active { background: #0f766e; }
 body.pribadi .fab { background: #0f766e; box-shadow: 0 6px 18px rgba(15,118,110,.45); }
 .ww-h .btn.small { padding: .15rem .55rem; font-size: .75rem; }
+
+/* ---------- arsip ---------- */
+#btnArsip { flex: 0 0 auto; white-space: nowrap; padding: .45rem .8rem; }
+#btnArsip.active { background: #b45309; border-color: #b45309; color: #fff; }
+body.arsip main { background: repeating-linear-gradient(135deg, transparent 0 14px, rgba(180,83,9,.05) 14px 28px); border-radius: var(--r); padding-top: .6rem; }
+.col-h .col-act { margin-left: auto; margin-right: .4rem; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: .1rem .55rem; font-size: .7rem; font-weight: 700; color: var(--mute); cursor: pointer; white-space: nowrap; }
+.col-h .col-act:hover { color: var(--ink); border-color: var(--mute); }
+.actions { flex-wrap: wrap; }

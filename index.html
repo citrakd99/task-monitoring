@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- File ID: F01 | Revision: R4 -->
+<!-- File ID: F01 | Revision: R5 -->
 <html lang="id">
 <head>
   <meta charset="utf-8">
@@ -49,6 +49,7 @@
         <button type="button" data-mode="TIM" title="Task tim: terlihat semua anggota">👥 Tim</button>
         <button type="button" data-mode="PRIBADI" title="Catatan pribadi: hanya Anda yang melihat">🔒 Pribadi</button>
       </div>
+      <button type="button" class="btn small" id="btnArsip" title="Lihat task yang sudah diarsipkan"></button>
       <select id="fSiapa" aria-label="Filter siapa"></select>
       <select id="fJenis" aria-label="Filter kanban"></select>
       <select id="fPrio" aria-label="Filter prioritas"></select>
@@ -98,6 +99,7 @@
       <p class="msg" id="detailMsg" role="alert"></p>
       <div class="actions">
         <button type="button" class="btn" data-close>Tutup</button>
+        <button type="button" class="btn" id="btnArsipOne"></button>
         <button type="button" class="btn" id="btnPdfOne">PDF</button>
         <button type="button" class="btn" id="btnEdit">Edit</button>
       </div>

@@ -1,6 +1,6 @@
 /**
  * Task MonitorinG — Backend API (Google Apps Script, V8)
- * File ID: F10 | Revision: R4 (prioritas + kanban Plan Task + mode pribadi)
+ * File ID: F10 | Revision: R5 (prioritas + kanban Plan Task + mode pribadi + arsip)
  *
  * Script ini harus "container-bound": buka Spreadsheet > Extensions > Apps Script,
  * lalu tempel seluruh isi file ini ke Code.gs.
@@ -20,7 +20,7 @@ const CFG = {
 const SH = { TASKS: 'Tasks', USERS: 'Users', LOG: 'Log', ERR: 'ErrorLog' };
 
 const HEAD = {
-  Tasks: ['id', 'apa', 'siapa', 'mulai', 'selesai', 'status', 'catatan', 'created_by', 'created_at', 'updated_at', 'version', 'prioritas', 'jenis', 'pemilik'],
+  Tasks: ['id', 'apa', 'siapa', 'mulai', 'selesai', 'status', 'catatan', 'created_by', 'created_at', 'updated_at', 'version', 'prioritas', 'jenis', 'pemilik', 'arsip'],
   Users: ['nama', 'pin_hash', 'salt', 'role', 'aktif'],
   Log: ['ts', 'task_id', 'user', 'from_status', 'to_status', 'note'],
   ErrorLog: ['ts', 'action', 'message', 'stack'],
@@ -79,6 +79,8 @@ function route_(b) {
     case 'create': return withLock_(() => createTask_(me, b.task));
     case 'update': return withLock_(() => updateTask_(me, b.id, b.version, b.task));
     case 'move': return withLock_(() => moveTask_(me, b.id, b.version, b.to, b.note));
+    case 'archive': return withLock_(() => archiveTask_(me, b.id, b.version, b.on));
+    case 'archiveAll': return withLock_(() => archiveAll_(me, b.status, b.pribadi));
     default: fail_(400, 'Action tidak dikenal');
   }
 }
@@ -90,6 +92,7 @@ function createTask_(me, input) {
   const pribadi = !!(input && input.pribadi);
   const t = cleanTask_(input, activeNames_(), null, pribadi);
   t.pemilik = pribadi ? me : '';
+  t.arsip = '';
   const now = new Date().toISOString();
   t.id = Utilities.getUuid();
   t.jenis = str_(input && input.jenis).toUpperCase() || 'DOC';
@@ -132,6 +135,7 @@ function moveTask_(me, id, version, to, note) {
   if (to === 'NOTE' && !note) fail_(400, 'Plan Task With Note wajib diisi catatan');
   const t = Object.assign({}, f.task, {
     status: to,
+    arsip: '', // reopen dari arsip = kembali ke papan
     catatan: to === 'NOTE' ? note : f.task.catatan,
     updated_at: new Date().toISOString(),
     version: f.task.version + 1,
@@ -139,6 +143,45 @@ function moveTask_(me, id, version, to, note) {
   writeTask_(f.row, t);
   log_(t.id, me, from, to, note);
   return t;
+}
+
+/* ======================= ARSIP ======================= */
+// Arsip = task selesai (Closed/Reject/Plan Task Closed) yang disembunyikan dari papan.
+// Data tidak dihapus; bisa dikeluarkan dari arsip atau di-reopen kapan saja.
+
+function archiveTask_(me, id, version, on) {
+  const f = findTask_(id);
+  assertOwner_(me, f.task);
+  assertVersion_(f.task, version);
+  on = on !== false;
+  if (on && FINAL.indexOf(f.task.status) < 0) fail_(422, 'Hanya task yang sudah Closed/Reject yang bisa diarsipkan');
+  const now = new Date().toISOString();
+  const t = Object.assign({}, f.task, { arsip: on ? now : '', updated_at: now, version: f.task.version + 1 });
+  writeTask_(f.row, t);
+  log_(t.id, me, t.status, t.status, on ? 'diarsipkan' : 'dikeluarkan dari arsip');
+  return t;
+}
+
+/** Arsipkan sekaligus semua task berstatus tertentu yang boleh saya ubah (mode tim: milik/buatan saya; mode pribadi: milik saya). */
+function archiveAll_(me, status, pribadi) {
+  status = str_(status).toUpperCase();
+  if (FINAL.indexOf(status) < 0) fail_(400, 'Hanya status Closed/Reject yang bisa diarsipkan');
+  const v = sheet_(SH.TASKS).getDataRange().getValues();
+  const now = new Date().toISOString();
+  let n = 0;
+  for (let i = 1; i < v.length; i++) {
+    if (!str_(v[i][0])) continue;
+    const t = rowToTask_(v[i]);
+    if (t.status !== status || t.arsip) continue;
+    if (pribadi ? t.pemilik !== me : t.pemilik || (t.siapa !== me && t.created_by !== me)) continue;
+    t.arsip = now;
+    t.updated_at = now;
+    t.version += 1;
+    writeTask_(i + 1, t);
+    n++;
+  }
+  if (n) log_('', me, status, status, 'arsip massal: ' + n + ' task');
+  return { archived: n };
 }
 
 function cleanTask_(input, users, base, pribadi) {

@@ -227,3 +227,43 @@ test('mode pribadi: PIC bebas, hanya pemilik yang melihat & mengubah', () => {
   t = g.post({ action: 'move', token: ahad, id: t.id, version: t.version, to: 'READY' }).data;
   assert.equal(t.status, 'READY');
 });
+
+test('arsip: hanya task selesai, bisa dikeluarkan, reopen mengeluarkan dari arsip, arsip massal', () => {
+  const g = loadGas();
+  g.ctx.setup();
+  g.ctx.upsertUser('Ahad', '1234');
+  g.ctx.upsertUser('Budi', '5678');
+  const ahad = g.post({ action: 'login', nama: 'Ahad', pin: '1234' }).data.token;
+  const budi = g.post({ action: 'login', nama: 'Budi', pin: '5678' }).data.token;
+  const mk = (token, siapa, extra = {}) => g.post({ action: 'create', token, task: { apa: 'Tes arsip', siapa, mulai: '2026-01-01', selesai: '2026-01-02', ...extra } }).data;
+  const mv = (token, t, to) => g.post({ action: 'move', token, id: t.id, version: t.version, to }).data;
+  const close = (token, t) => mv(token, mv(token, mv(token, t, 'PROGRESS'), 'SUBMIT'), 'CLOSED');
+  let a = mk(ahad, 'Ahad');
+  assert.equal(a.arsip, '');
+  assert.equal(g.post({ action: 'archive', token: ahad, id: a.id, version: a.version, on: true }).code, 422); // masih OPEN
+  a = close(ahad, a);
+  assert.equal(g.post({ action: 'archive', token: budi, id: a.id, version: a.version, on: true }).code, 403); // bukan miliknya
+  a = g.post({ action: 'archive', token: ahad, id: a.id, version: a.version, on: true }).data;
+  assert.ok(a.arsip);
+  a = g.post({ action: 'archive', token: ahad, id: a.id, version: a.version, on: false }).data;
+  assert.equal(a.arsip, '');
+  a = g.post({ action: 'archive', token: ahad, id: a.id, version: a.version, on: true }).data;
+  a = mv(ahad, a, 'OPEN'); // reopen langsung dari arsip
+  assert.equal(a.arsip, '');
+  assert.equal(a.status, 'OPEN');
+
+  // arsip massal: hanya CLOSED milik saya, mode tim & pribadi terpisah
+  close(ahad, a);
+  close(ahad, mk(ahad, 'Ahad'));
+  close(budi, mk(budi, 'Budi'));
+  const priv = mk(ahad, 'Pak Joko', { pribadi: true, jenis: 'PLAN' });
+  mv(ahad, mv(ahad, priv, 'READY'), 'DONE');
+  assert.equal(g.post({ action: 'archiveAll', token: ahad, status: 'OPEN' }).code, 400);
+  assert.equal(g.post({ action: 'archiveAll', token: ahad, status: 'CLOSED', pribadi: false }).data.archived, 2);
+  assert.equal(g.post({ action: 'archiveAll', token: ahad, status: 'CLOSED', pribadi: false }).data.archived, 0);
+  assert.equal(g.post({ action: 'archiveAll', token: ahad, status: 'DONE', pribadi: false }).data.archived, 0); // task pribadi tidak ikut mode tim
+  assert.equal(g.post({ action: 'archiveAll', token: ahad, status: 'DONE', pribadi: true }).data.archived, 1);
+  const list = g.post({ action: 'list', token: budi }).data.tasks;
+  assert.equal(list.filter((t) => t.arsip).length, 2);
+  assert.equal(list.filter((t) => !t.arsip && t.status === 'CLOSED').length, 1); // milik Budi belum diarsipkan
+});

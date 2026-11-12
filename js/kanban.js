@@ -1,5 +1,5 @@
 // File ID: F04 | Revision: R2 — Kanban board (dipakai kanban Plan Task & kanban Dokumen)
-import { STATUSES, STATUS_META, isOverdue, canEdit, fmtRange, el, prioFlag, byPriority, jenisOf } from './util.js';
+import { STATUSES, STATUS_META, FINAL, isOverdue, canEdit, fmtRange, el, prioFlag, byPriority, jenisOf } from './util.js';
 
 export function card(t, today, me, onOpen, draggable = false, showJenis = false) {
   const over = isOverdue(t, today);
@@ -37,7 +37,7 @@ export function card(t, today, me, onOpen, draggable = false, showJenis = false)
  * statuses: kolom kanban ini. extra: kolom tamu dari kanban lain, mis. Plan Task With Note
  * yang ditampilkan di kanban dokumen ([{ status, tasks }]); kolom tamu tidak menerima drop.
  */
-export function renderKanban(root, { tasks, statuses = STATUSES, extra = [], today, me, onOpen, onMove }) {
+export function renderKanban(root, { tasks, statuses = STATUSES, extra = [], today, me, onOpen, onMove, onArchiveAll }) {
   const cols = [...extra.map((x) => ({ s: x.status, list: x.tasks, guest: true })), ...statuses.map((s) => ({ s, list: tasks.filter((t) => t.status === s), guest: false }))];
   const board = el('div', { class: 'board', style: { '--cols': String(cols.length) } });
   for (const { s, list: raw, guest } of cols) {
@@ -48,7 +48,15 @@ export function renderKanban(root, { tasks, statuses = STATUSES, extra = [], tod
     const col = el(
       'section',
       { class: `col${guest ? ' guest' : ''}`, style: { '--c': STATUS_META[s].color } },
-      el('header', { class: 'col-h' }, el('span', {}, STATUS_META[s].label), el('span', { class: 'count' }, String(list.length))),
+      el(
+        'header',
+        { class: 'col-h' },
+        el('span', {}, STATUS_META[s].label),
+        !guest && onArchiveAll && FINAL.includes(s) && list.some((t) => canEdit(t, me))
+          ? el('button', { type: 'button', class: 'col-act', title: 'Arsipkan semua task Anda di kolom ini', 'aria-label': 'Arsipkan semua', onclick: () => onArchiveAll(s, list.filter((t) => canEdit(t, me)).length) }, '📦 Arsipkan')
+          : null,
+        el('span', { class: 'count' }, String(list.length)),
+      ),
       body,
     );
     if (!guest) {

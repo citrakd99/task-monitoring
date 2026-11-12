@@ -30,6 +30,6 @@ Fitur: flag prioritas (Urgent / High Priority / Normal), export PDF, layout HP +
 ## Test & preview
 
 ```bash
-npm test          # Node 18+: 31 test (backend via simulator Apps Script + logika frontend + PDF)
+npm test          # Node 18+: 32 test (backend via simulator Apps Script + logika frontend + PDF)
 npm run preview   # http://localhost:4173 dengan data demo di memori
 ```

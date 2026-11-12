@@ -1,4 +1,4 @@
-// File ID: F02 | Revision: R4 — controller utama
+// File ID: F02 | Revision: R5 — controller utama
 import { api, session, clearSession, cachedTasks, cachedUsers, apiConfigured } from './api.js';
 import { STATUSES, STATUS_META, TRANSITIONS, ACTIVE, todayWIB, canEdit, canMove, isOverdue, fmtRange, filterTasks, el, pill, PRIORITIES, PRIORITY_META, prioOf, prioFlag, PLAN_STATUSES, ALL_STATUSES, FINAL, JENIS_META, jenisOf, isActive } from './util.js';
 import { buildListPdf, buildTaskPdf, savePdf } from './pdf.js';
@@ -15,7 +15,7 @@ const S = {
   today: todayWIB(),
   view: localStorage.getItem('tm_view') || 'plan',
   mode: localStorage.getItem('tm_mode') === 'PRIBADI' ? 'PRIBADI' : 'TIM',
-  f: { siapa: '', status: '', prio: '', jenis: '', note: localStorage.getItem('tm_note') === '1', all: false },
+  f: { siapa: '', status: '', prio: '', jenis: '', note: localStorage.getItem('tm_note') === '1', all: false, arsip: false },
   offline: !navigator.onLine,
   current: null,
   editing: null,
@@ -142,7 +142,9 @@ async function refresh(force = false) {
 // Tab 'plan' = kanban Plan Task, 'kanban' = kanban Dokumen; Kalender & Who-What memuat keduanya (bisa difilter).
 // Mode TIM = task bersama (PIC dari daftar user). Mode PRIBADI = catatan sendiri (PIC diketik bebas, hanya pemilik yang melihat).
 const pribadi = () => S.mode === 'PRIBADI';
-const modeTasks = () => S.tasks.filter((t) => (pribadi() ? t.pemilik === S.me : !t.pemilik));
+const inMode = (t) => (pribadi() ? t.pemilik === S.me : !t.pemilik);
+// Arsip: task selesai yang disembunyikan dari papan. Tombol Arsip membalik tampilan (hanya arsip / tanpa arsip).
+const modeTasks = () => S.tasks.filter((t) => inMode(t) && !!t.arsip === S.f.arsip);
 const mixed = () => S.view === 'calendar' || S.view === 'whowhat';
 const viewJenis = () => (S.view === 'plan' ? 'PLAN' : S.view === 'kanban' ? 'DOC' : S.f.jenis);
 const statusOptions = () => (S.f.jenis ? JENIS_META[S.f.jenis].statuses : ALL_STATUSES);
@@ -152,7 +154,11 @@ const visibleTasks = () => filterTasks(modeTasks(), activeFilter());
 function render() {
   if (!S.me) return;
   $('offline').hidden = !S.offline;
-  $('fab').hidden = S.offline;
+  $('fab').hidden = S.offline || S.f.arsip;
+  const nArsip = S.tasks.filter((t) => inMode(t) && t.arsip).length;
+  $('btnArsip').textContent = S.f.arsip ? `← Kembali dari Arsip (${nArsip})` : `📦 Arsip (${nArsip})`;
+  $('btnArsip').classList.toggle('active', S.f.arsip);
+  document.body.classList.toggle('arsip', S.f.arsip);
 
   // filter bar
   const names = [...new Set([...(pribadi() ? [] : S.users), ...modeTasks().map((t) => t.siapa)])].sort();
@@ -171,7 +177,7 @@ function render() {
   $('fJenis').hidden = !mixed();
   $('fNoteWrap').hidden = S.view !== 'kanban';
   $('fNote').checked = S.f.note;
-  $('fAllWrap').hidden = S.view !== 'whowhat';
+  $('fAllWrap').hidden = S.view !== 'whowhat' || S.f.arsip;
 
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === S.view));
 
@@ -181,11 +187,12 @@ function render() {
     me: S.me,
     onOpen: openDetail,
     onMove: moveFromDrag,
+    onArchiveAll: S.f.arsip || S.offline ? null : archiveAll,
   };
   const root = $('view');
   root.dataset.view = S.view;
   if (S.view === 'calendar') renderCalendar(root, { ...ctx, statuses: so });
-  else if (S.view === 'whowhat') renderWhoWhat(root, { ...ctx, users: S.f.siapa ? [S.f.siapa] : pribadi() ? [] : S.users, showAll: S.f.all, onPdf: exportPicPdf });
+  else if (S.view === 'whowhat') renderWhoWhat(root, { ...ctx, users: S.f.siapa ? [S.f.siapa] : pribadi() ? [] : S.users, showAll: S.f.all || S.f.arsip, onPdf: exportPicPdf });
   else if (S.view === 'plan') renderKanban(root, { ...ctx, statuses: PLAN_STATUSES });
   else {
     // kanban dokumen; opsional menampilkan Plan Task With Note sebagai kolom tamu
@@ -231,6 +238,10 @@ function openDetail(t) {
       : []),
   );
   $('btnEdit').hidden = !(can && ACTIVE.includes(t.status));
+  const ab = $('btnArsipOne');
+  ab.hidden = !(can && (t.arsip || FINAL.includes(t.status)));
+  ab.textContent = t.arsip ? '↩ Keluarkan dari arsip' : '📦 Arsipkan';
+  ab.onclick = () => setArchive(t, !t.arsip, ab);
   $('detailDlg').showModal();
 }
 
@@ -252,6 +263,32 @@ async function doMove(t, to, note, btn) {
     handleErr(e);
   } finally {
     setBusy(btn, false);
+  }
+}
+
+async function setArchive(t, on, btn) {
+  setBusy(btn, true);
+  try {
+    await api.archive(t.id, t.version, on);
+    closeDialogs();
+    toast(on ? 'Diarsipkan. Lihat lewat tombol Arsip.' : 'Dikeluarkan dari arsip');
+    await refresh(true);
+  } catch (e) {
+    handleErr(e);
+  } finally {
+    setBusy(btn, false);
+  }
+}
+
+async function archiveAll(status, n) {
+  const whose = pribadi() ? '' : ' milik Anda';
+  if (!confirm(`Arsipkan semua task "${STATUS_META[status].label}"${whose}? (${n} task di kolom ini)\n\nTask arsip tidak dihapus dan bisa dibuka lagi lewat tombol Arsip.`)) return;
+  try {
+    const r = await api.archiveAll(status, pribadi());
+    toast(`${r.archived} task diarsipkan`);
+    await refresh(true);
+  } catch (e) {
+    handleErr(e);
   }
 }
 
@@ -350,13 +387,13 @@ async function exportPdf(build, name) {
   }
 }
 
-const modeLabel = () => (pribadi() ? ' (catatan pribadi)' : '');
+const modeLabel = () => (S.f.arsip ? ' - ARSIP' : '') + (pribadi() ? ' (catatan pribadi)' : '');
 
 /** Who-What: PDF untuk satu PIC, mengikuti filter yang sedang aktif. */
 function exportPicPdf(nama) {
   let tasks = filterTasks(modeTasks(), { ...activeFilter(), siapa: nama });
-  if (!S.f.all) tasks = tasks.filter(isActive);
-  exportPdf(() => buildListPdf(tasks, { today: S.today, subtitle: `PIC: ${nama}${S.f.all ? '' : ' - task aktif'}` + modeLabel() }), `pic-${slug(nama)}-${S.today}.pdf`);
+  if (!S.f.all && !S.f.arsip) tasks = tasks.filter(isActive);
+  exportPdf(() => buildListPdf(tasks, { today: S.today, subtitle: `PIC: ${nama}${S.f.all || S.f.arsip ? '' : ' - task aktif'}` + modeLabel() }), `pic-${slug(nama)}-${S.today}.pdf`);
 }
 
 function openPdfDlg() {
@@ -420,6 +457,7 @@ function bind() {
       render();
     }),
   );
+  $('btnArsip').addEventListener('click', () => { S.f.arsip = !S.f.arsip; render(); });
   $('fSiapa').addEventListener('change', (e) => { S.f.siapa = e.target.value; render(); });
   fillSelect($('fPrio'), PRIORITIES.map((p) => [p, PRIORITY_META[p].label]), 'Semua prioritas');
   $('fPrio').addEventListener('change', (e) => { S.f.prio = e.target.value; render(); });
