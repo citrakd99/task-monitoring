@@ -56,6 +56,17 @@ const SEED = [
   ['Stock opname gudang', 'Eko', 9, 10, [], ''],
 ];
 
+// Kanban Plan Task: [pekerjaan, PIC, plan start, plan finish, jalur status, prioritas, catatan With Note]
+const PLAN_SEED = [
+  ['Pengadaan kain mori primissima 500 m', 'Ahad', 1, 6, [], 'HIGH'],
+  ['Pembuatan pola motif kawung', 'Budi', 0, 3, [], 'NORMAL'],
+  ['Nyanting batch #13', 'Dewi', -2, 5, ['READY'], 'NORMAL'],
+  ['Pencelupan warna sogan', 'Eko', -1, 4, ['READY'], 'URGENT'],
+  ['Pelorodan & penjemuran batch #11', 'Citra', -5, -1, ['NOTE'], 'HIGH', 'Tungku pelorodan rusak, menunggu perbaikan teknisi'],
+  ['Quality check sebelum packing', 'Budi', -3, 2, ['READY', 'NOTE'], 'NORMAL', 'Dokumen QC checklist belum disetujui'],
+  ['Pengiriman sampel ke klien', 'Ahad', -8, -5, ['READY', 'DONE'], 'NORMAL'],
+];
+
 const tokens = {};
 const tokenOf = (nama) => (tokens[nama] ||= gas.post({ action: 'login', nama, pin: DEMO_PIN }).data.token);
 
@@ -63,6 +74,12 @@ for (const [apa, siapa, a, b, steps, catatan, prioritas = 'NORMAL'] of SEED) {
   const token = tokenOf(siapa);
   let t = gas.post({ action: 'create', token, task: { apa, siapa, mulai: day(a), selesai: day(b), catatan, prioritas } }).data;
   for (const to of steps) t = gas.post({ action: 'move', token, id: t.id, version: t.version, to, note: '' }).data;
+}
+
+for (const [apa, siapa, a, b, steps, prioritas, note = ''] of PLAN_SEED) {
+  const token = tokenOf(siapa);
+  let t = gas.post({ action: 'create', token, task: { jenis: 'PLAN', apa, siapa, mulai: day(a), selesai: day(b), prioritas } }).data;
+  for (const to of steps) t = gas.post({ action: 'move', token, id: t.id, version: t.version, to, note: to === 'NOTE' ? note : '' }).data;
 }
 
 /* ---------------- http ---------------- */

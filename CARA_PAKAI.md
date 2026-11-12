@@ -49,6 +49,9 @@ Waktu pasang ± 20 menit.
 | Fitur | Cara |
 |---|---|
 | Task baru | Ketuk tombol **+**. Tanggal mulai & selesai otomatis terisi hari ini |
+| Kanban Plan Task | Tab **Plan Task**: monitoring pekerjaan dengan kolom **Plan Task → Plan Task Ready → Plan Task With Note → Plan Task Closed**. Isi: Pekerjaan, PIC, Plan Start – Plan Finish. Pindah ke *With Note* wajib mengisi catatan, dan catatannya tampil di kartu |
+| Kanban Dokumen | Tab **Dokumen**: tracking dokumen (Open → Progress → Submit → Revisi/Closed/Reject). Centang **Tampilkan Plan Task With Note** untuk melihat plan task ber-catatan sebagai kolom tambahan di sini |
+| Filter kanban | Di **Kalender** dan **Who-What** ada dropdown *Semua kanban / Kanban Plan Task / Kanban Dokumen*, plus filter status, orang, dan prioritas |
 | Prioritas | Pilih **Urgent**, **High Priority**, atau **Normal** di form task. Urgent/High diberi flag ⚑ dan naik ke atas kolom Kanban. Bisa difilter lewat dropdown prioritas |
 | Export PDF | Tombol **PDF** di kanan atas: pilih *Semua task* atau *Sesuai filter*. Untuk satu kartu: buka kartunya lalu tekan **PDF** |
 | Ubah status | Ketuk kartu, lalu pilih tombol status. Di laptop, kartu bisa di-drag antar kolom |
@@ -88,7 +91,7 @@ Kartu milik orang lain ditandai 🔒.
 
 - **Update `Code.gs`:** pilih **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**.
   Jangan pakai "New deployment", karena itu membuat URL baru dan aplikasi akan putus.
-- **Dari versi tanpa kolom prioritas:** setelah mengganti `Code.gs`, jalankan fungsi **`setup`** sekali lagi (menambah kolom `prioritas` di sheet Tasks; data lama aman dan dianggap Normal), lalu deploy *New version*.
+- **Dari versi lama (tanpa prioritas / tanpa Kanban Plan Task):** setelah mengganti `Code.gs`, jalankan fungsi **`setup`** sekali lagi (menambah kolom `prioritas` dan `jenis` di sheet Tasks; data lama aman, dianggap Normal dan masuk Kanban Dokumen), lalu deploy *New version*.
 - **Update file web:** naikkan versi `CACHE` di `sw.js` (misalnya `tm-v1` menjadi `tm-v2`) agar HP user mengambil versi baru.
 
 ## Troubleshooting

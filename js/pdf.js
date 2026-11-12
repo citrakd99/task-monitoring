@@ -1,5 +1,5 @@
-// File ID: F14 | Revision: R1 — export PDF tanpa library (PDF 1.4, font standar Helvetica)
-import { STATUSES, STATUS_META, PRIORITY_META, prioOf, byPriority, isOverdue, fmtDate, fmtRange } from './util.js';
+// File ID: F14 | Revision: R2 — export PDF tanpa library (PDF 1.4, font standar Helvetica)
+import { STATUS_META, PRIORITY_META, JENIS_META, jenisOf, prioOf, byPriority, isOverdue, fmtDate, fmtRange } from './util.js';
 
 const W = 595.28;
 const H = 841.89;
@@ -175,58 +175,73 @@ const fmtTs = (iso) => {
 
 // kolom tabel daftar: [x, lebar]
 const COL = { apa: [M + 4, 246], siapa: [M + 258, 82], kapan: [M + 346, 104], prio: [M + 456, 59] };
+const HEADS = { PLAN: ['PEKERJAAN', 'PIC', 'PLAN START - FINISH'], DOC: ['APA', 'SIAPA', 'KAPAN'] };
+const TITLES = { PLAN: 'KANBAN PLAN TASK', DOC: 'KANBAN TRACKING DOKUMEN' };
 
-function colHead(doc) {
+function colHead(doc, jenis) {
+  const [a, b, c] = HEADS[jenis];
   const y = doc.y - 9;
-  doc.text('APA', COL.apa[0], y, 7.5, { bold: true, color: MUTE });
-  doc.text('SIAPA', COL.siapa[0], y, 7.5, { bold: true, color: MUTE });
-  doc.text('KAPAN', COL.kapan[0], y, 7.5, { bold: true, color: MUTE });
+  doc.text(a, COL.apa[0], y, 7.5, { bold: true, color: MUTE });
+  doc.text(b, COL.siapa[0], y, 7.5, { bold: true, color: MUTE });
+  doc.text(c, COL.kapan[0], y, 7.5, { bold: true, color: MUTE });
   doc.text('PRIORITAS', COL.prio[0], y, 7.5, { bold: true, color: MUTE });
   doc.y -= 14;
   doc.rect(M, doc.y, W - 2 * M, 0.6, LINE);
 }
 
-/** PDF daftar task, dikelompokkan per status. Mengembalikan Uint8Array. */
+/** PDF daftar task: per kanban (Plan Task, lalu Dokumen), dikelompokkan per status. Mengembalikan Uint8Array. */
 export function buildListPdf(tasks, { today, subtitle = 'Semua task' } = {}) {
   const doc = new Doc();
   header(doc, `Laporan task - ${subtitle}`);
 
   const overdue = tasks.filter((t) => isOverdue(t, today)).length;
-  const counts = STATUSES.map((s) => `${STATUS_META[s].label} ${tasks.filter((t) => t.status === s).length}`).join('   ');
-  doc.text(`Total ${tasks.length} task   |   ${counts}   |   Overdue ${overdue}`, M, doc.y, 9, { color: MUTE });
-  doc.y -= 20;
+  const nPlan = tasks.filter((t) => jenisOf(t) === 'PLAN').length;
+  doc.text(`Total ${tasks.length} task   |   Plan Task ${nPlan}   |   Dokumen ${tasks.length - nPlan}   |   Overdue ${overdue}`, M, doc.y, 9, { color: MUTE });
+  doc.y -= 24;
 
   if (!tasks.length) doc.text('Tidak ada task.', M, doc.y, 11, { color: MUTE });
 
-  for (const s of STATUSES) {
-    const list = tasks.filter((t) => t.status === s).sort((a, b) => byPriority(a, b) || a.selesai.localeCompare(b.selesai));
-    if (!list.length) continue;
-    doc.need(70);
-    const bar = () => {
-      doc.rect(M, doc.y - 18, W - 2 * M, 18, STATUS_META[s].color);
-      doc.text(`${STATUS_META[s].label}  (${list.length})`, M + 6, doc.y - 13, 10, { bold: true, color: '#ffffff' });
-      doc.y -= 22;
-      colHead(doc);
-    };
-    bar();
-    for (const t of list) {
-      const over = isOverdue(t, today);
-      const apa = wrap(t.apa, 9.5, false, COL.apa[1], 5);
-      const siapa = wrap(t.siapa, 9, false, COL.siapa[1], 2);
-      const rows = Math.max(apa.length, siapa.length, over ? 2 : 1);
-      const h = rows * 12 + 8;
-      if (doc.need(h)) bar();
-      const top = doc.y - 13;
-      apa.forEach((l, i) => doc.text(l, COL.apa[0], top - i * 12, 9.5, { raw: true }));
-      siapa.forEach((l, i) => doc.text(l, COL.siapa[0], top - i * 12, 9, { raw: true }));
-      doc.text(fmtRange(t.mulai, t.selesai), COL.kapan[0], top, 8.5, { color: over ? RED : INK });
-      if (over) doc.text('OVERDUE', COL.kapan[0], top - 11, 7.5, { bold: true, color: RED });
-      const p = prioOf(t);
-      doc.text(p === 'HIGH' ? 'High' : PRIORITY_META[p].label, COL.prio[0], top, 8.5, { bold: p !== 'NORMAL', color: PRIORITY_META[p].color });
-      doc.y -= h;
-      doc.rect(M, doc.y, W - 2 * M, 0.6, LINE);
+  for (const j of ['PLAN', 'DOC']) {
+    const group = tasks.filter((t) => jenisOf(t) === j);
+    if (!group.length) continue;
+    doc.need(120);
+    doc.text(TITLES[j], M, doc.y - 10, 11, { bold: true, color: BRAND });
+    doc.y -= 15;
+    doc.text(JENIS_META[j].statuses.map((s) => `${STATUS_META[s].label} ${group.filter((t) => t.status === s).length}`).join('   '), M, doc.y - 8, 8, { color: MUTE });
+    doc.y -= 18;
+
+    for (const s of JENIS_META[j].statuses) {
+      const list = group.filter((t) => t.status === s).sort((a, b) => byPriority(a, b) || a.selesai.localeCompare(b.selesai));
+      if (!list.length) continue;
+      doc.need(70);
+      const bar = () => {
+        doc.rect(M, doc.y - 18, W - 2 * M, 18, STATUS_META[s].color);
+        doc.text(`${STATUS_META[s].label}  (${list.length})`, M + 6, doc.y - 13, 10, { bold: true, color: '#ffffff' });
+        doc.y -= 22;
+        colHead(doc, j);
+      };
+      bar();
+      for (const t of list) {
+        const over = isOverdue(t, today);
+        const apa = wrap(t.apa, 9.5, false, COL.apa[1], 5);
+        const note = s === 'NOTE' && t.catatan ? wrap('Catatan: ' + t.catatan, 8, false, COL.apa[1], 4) : [];
+        const siapa = wrap(t.siapa, 9, false, COL.siapa[1], 2);
+        const h = Math.max(apa.length * 12 + note.length * 10, siapa.length * 12, over ? 24 : 12) + 8;
+        if (doc.need(h)) bar();
+        const top = doc.y - 13;
+        apa.forEach((l, i) => doc.text(l, COL.apa[0], top - i * 12, 9.5, { raw: true }));
+        note.forEach((l, i) => doc.text(l, COL.apa[0], top - apa.length * 12 - i * 10 + 1, 8, { raw: true, color: '#b45309' }));
+        siapa.forEach((l, i) => doc.text(l, COL.siapa[0], top - i * 12, 9, { raw: true }));
+        doc.text(fmtRange(t.mulai, t.selesai), COL.kapan[0], top, 8.5, { color: over ? RED : INK });
+        if (over) doc.text('OVERDUE', COL.kapan[0], top - 11, 7.5, { bold: true, color: RED });
+        const p = prioOf(t);
+        doc.text(p === 'HIGH' ? 'High' : PRIORITY_META[p].label, COL.prio[0], top, 8.5, { bold: p !== 'NORMAL', color: PRIORITY_META[p].color });
+        doc.y -= h;
+        doc.rect(M, doc.y, W - 2 * M, 0.6, LINE);
+      }
+      doc.y -= 16;
     }
-    doc.y -= 16;
+    doc.y -= 6;
   }
   return doc.build(stamp());
 }
@@ -234,7 +249,8 @@ export function buildListPdf(tasks, { today, subtitle = 'Semua task' } = {}) {
 /** PDF satu kartu task. Mengembalikan Uint8Array. */
 export function buildTaskPdf(t, { today } = {}) {
   const doc = new Doc();
-  header(doc, 'Kartu task');
+  const plan = jenisOf(t) === 'PLAN';
+  header(doc, plan ? 'Kartu plan task' : 'Kartu task dokumen');
   const over = isOverdue(t, today);
   const p = prioOf(t);
 
@@ -263,10 +279,11 @@ export function buildTaskPdf(t, { today } = {}) {
     doc.rect(M, doc.y, W - 2 * M, 0.6, LINE);
     doc.y -= 4;
   };
+  field('KANBAN', plan ? 'Plan Task' : 'Tracking Dokumen');
   field('STATUS', STATUS_META[t.status]?.label || t.status);
   field('PRIORITAS', PRIORITY_META[p].label, PRIORITY_META[p].color);
-  field('SIAPA', t.siapa);
-  field('KAPAN', fmtRange(t.mulai, t.selesai) + (over ? '  (OVERDUE)' : ''), over ? RED : INK);
+  field(plan ? 'PIC' : 'SIAPA', t.siapa);
+  field(plan ? 'PLAN START - FINISH' : 'KAPAN', fmtRange(t.mulai, t.selesai) + (over ? '  (OVERDUE)' : ''), over ? RED : INK);
   field('CATATAN', t.catatan);
   field('DIBUAT OLEH', t.created_by);
   field('DIBUAT', fmtTs(t.created_at));

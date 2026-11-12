@@ -166,3 +166,35 @@ test('prioritas: default NORMAL, tersimpan, validasi, bisa diubah', () => {
   const list = g.post({ action: 'list', token }).data.tasks;
   assert.deepEqual(list.map((t) => t.prioritas).sort(), ['HIGH', 'URGENT']);
 });
+
+test('kanban Plan Task: status awal, transisi, With Note wajib catatan, terpisah dari dokumen', () => {
+  const g = loadGas();
+  g.ctx.setup();
+  g.ctx.upsertUser('Ahad', '1234');
+  const token = g.post({ action: 'login', nama: 'Ahad', pin: '1234' }).data.token;
+  const base = { apa: 'Nyanting batch 1', siapa: 'Ahad', mulai: '2026-01-01', selesai: '2026-01-05' };
+  const doc = g.post({ action: 'create', token, task: base }).data;
+  assert.equal(doc.jenis, 'DOC');
+  assert.equal(doc.status, 'OPEN');
+  let p = g.post({ action: 'create', token, task: { ...base, jenis: 'plan' } }).data;
+  assert.equal(p.jenis, 'PLAN');
+  assert.equal(p.status, 'PLAN');
+  assert.equal(g.post({ action: 'create', token, task: { ...base, jenis: 'LAIN' } }).code, 400);
+  const mv = (t, to, note) => g.post({ action: 'move', token, id: t.id, version: t.version, to, note });
+  assert.equal(mv(p, 'PROGRESS').code, 422); // status dokumen tidak berlaku untuk plan
+  assert.equal(mv(doc, 'READY').code, 422); // dan sebaliknya
+  assert.equal(mv(p, 'DONE').code, 422); // harus Ready dulu
+  assert.equal(mv(p, 'NOTE', '').code, 400); // With Note wajib catatan
+  p = mv(p, 'NOTE', 'Material belum datang').data;
+  assert.equal(p.status, 'NOTE');
+  assert.equal(p.catatan, 'Material belum datang');
+  p = mv(p, 'READY').data;
+  assert.equal(p.catatan, 'Material belum datang'); // catatan tidak hilang
+  p = mv(p, 'DONE').data;
+  assert.equal(g.post({ action: 'update', token, id: p.id, version: p.version, task: { apa: 'x' } }).code, 422);
+  p = mv(p, 'PLAN').data; // reopen
+  const up = g.post({ action: 'update', token, id: p.id, version: p.version, task: { apa: 'Nyanting batch 2', jenis: 'DOC' } }).data;
+  assert.equal(up.jenis, 'PLAN'); // jenis tidak bisa diubah
+  const list = g.post({ action: 'list', token }).data.tasks;
+  assert.deepEqual(list.map((t) => t.jenis).sort(), ['DOC', 'PLAN']);
+});

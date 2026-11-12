@@ -1,6 +1,6 @@
 /**
  * Task MonitorinG — Backend API (Google Apps Script, V8)
- * File ID: F10 | Revision: R2 (kolom prioritas)
+ * File ID: F10 | Revision: R3 (prioritas + kanban Plan Task)
  *
  * Script ini harus "container-bound": buka Spreadsheet > Extensions > Apps Script,
  * lalu tempel seluruh isi file ini ke Code.gs.
@@ -19,14 +19,18 @@ const CFG = {
 const SH = { TASKS: 'Tasks', USERS: 'Users', LOG: 'Log', ERR: 'ErrorLog' };
 
 const HEAD = {
-  Tasks: ['id', 'apa', 'siapa', 'mulai', 'selesai', 'status', 'catatan', 'created_by', 'created_at', 'updated_at', 'version', 'prioritas'],
+  Tasks: ['id', 'apa', 'siapa', 'mulai', 'selesai', 'status', 'catatan', 'created_by', 'created_at', 'updated_at', 'version', 'prioritas', 'jenis'],
   Users: ['nama', 'pin_hash', 'salt', 'role', 'aktif'],
   Log: ['ts', 'task_id', 'user', 'from_status', 'to_status', 'note'],
   ErrorLog: ['ts', 'action', 'message', 'stack'],
 };
 
-const STATUSES = ['OPEN', 'PROGRESS', 'SUBMIT', 'REVISI', 'CLOSED', 'REJECT'];
-const FINAL = ['CLOSED', 'REJECT'];
+// jenis DOC = kanban tracking dokumen, jenis PLAN = kanban plan task pekerjaan.
+// Nama status kedua kanban sengaja berbeda, jadi satu tabel transisi cukup.
+const JENIS = ['DOC', 'PLAN'];
+const FIRST = { DOC: 'OPEN', PLAN: 'PLAN' };
+const STATUSES = ['OPEN', 'PROGRESS', 'SUBMIT', 'REVISI', 'CLOSED', 'REJECT', 'PLAN', 'READY', 'NOTE', 'DONE'];
+const FINAL = ['CLOSED', 'REJECT', 'DONE'];
 const PRIORITIES = ['URGENT', 'HIGH', 'NORMAL'];
 const TRANSITIONS = {
   OPEN: ['PROGRESS', 'REJECT'],
@@ -35,6 +39,10 @@ const TRANSITIONS = {
   REVISI: ['PROGRESS'],
   CLOSED: ['OPEN'], // reopen
   REJECT: ['OPEN'], // reopen
+  PLAN: ['READY', 'NOTE'],
+  READY: ['DONE', 'NOTE', 'PLAN'],
+  NOTE: ['READY', 'DONE', 'PLAN'], // Plan Task With Note
+  DONE: ['PLAN'], // reopen
 };
 
 /* ======================= HTTP ======================= */
@@ -80,13 +88,15 @@ function createTask_(me, input) {
   const t = cleanTask_(input, activeNames_(), null);
   const now = new Date().toISOString();
   t.id = Utilities.getUuid();
-  t.status = 'OPEN';
+  t.jenis = str_(input && input.jenis).toUpperCase() || 'DOC';
+  if (JENIS.indexOf(t.jenis) < 0) fail_(400, 'Jenis kanban harus DOC atau PLAN');
+  t.status = FIRST[t.jenis];
   t.created_by = me;
   t.created_at = now;
   t.updated_at = now;
   t.version = 1;
   sheet_(SH.TASKS).appendRow(taskToRow_(t));
-  log_(t.id, me, '', 'OPEN', 'dibuat');
+  log_(t.id, me, '', t.status, 'dibuat');
   return t;
 }
 
@@ -94,7 +104,7 @@ function updateTask_(me, id, version, input) {
   const f = findTask_(id);
   assertOwner_(me, f.task);
   assertVersion_(f.task, version);
-  if (FINAL.indexOf(f.task.status) >= 0) fail_(422, 'Task CLOSED/REJECT tidak bisa diedit. Reopen dulu.');
+  if (FINAL.indexOf(f.task.status) >= 0) fail_(422, 'Task yang sudah Closed/Reject tidak bisa diedit. Reopen dulu.');
   const clean = cleanTask_(input, activeNames_(), f.task);
   const t = Object.assign({}, f.task, clean, {
     updated_at: new Date().toISOString(),
@@ -115,8 +125,10 @@ function moveTask_(me, id, version, to, note) {
   if ((TRANSITIONS[from] || []).indexOf(to) < 0) fail_(422, 'Transisi ' + from + ' -> ' + to + ' tidak diizinkan');
   note = str_(note);
   if (note.length > CFG.MAX_NOTE) fail_(400, 'Catatan perubahan maksimal ' + CFG.MAX_NOTE + ' karakter');
+  if (to === 'NOTE' && !note) fail_(400, 'Plan Task With Note wajib diisi catatan');
   const t = Object.assign({}, f.task, {
     status: to,
+    catatan: to === 'NOTE' ? note : f.task.catatan,
     updated_at: new Date().toISOString(),
     version: f.task.version + 1,
   });
@@ -187,6 +199,7 @@ function rowToTask_(r) {
     if (h === 'mulai' || h === 'selesai') o[h] = normDate_(v);
     else if (h === 'version') o[h] = Number(v) || 1;
     else if (h === 'prioritas') o[h] = PRIORITIES.indexOf(str_(v).toUpperCase()) >= 0 ? str_(v).toUpperCase() : 'NORMAL'; // baris lama = NORMAL
+    else if (h === 'jenis') o[h] = str_(v).toUpperCase() === 'PLAN' ? 'PLAN' : 'DOC'; // baris lama = DOC
     else o[h] = v instanceof Date ? v.toISOString() : str_(v);
   });
   return o;

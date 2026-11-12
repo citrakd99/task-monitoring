@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- File ID: F01 | Revision: R2 -->
+<!-- File ID: F01 | Revision: R3 -->
 <html lang="id">
 <head>
   <meta charset="utf-8">
@@ -46,15 +46,18 @@
 
     <div class="filters">
       <select id="fSiapa" aria-label="Filter siapa"></select>
+      <select id="fJenis" aria-label="Filter kanban"></select>
       <select id="fPrio" aria-label="Filter prioritas"></select>
       <select id="fStatus" aria-label="Filter status"></select>
+      <label class="chk" id="fNoteWrap"><input type="checkbox" id="fNote"> Tampilkan Plan Task With Note</label>
       <label class="chk" id="fAllWrap"><input type="checkbox" id="fAll"> Tampilkan semua</label>
     </div>
 
     <main id="view"></main>
 
     <nav class="tabs">
-      <button type="button" data-view="kanban"><b>▦</b><span>Kanban</span></button>
+      <button type="button" data-view="plan"><b>☑</b><span>Plan Task</span></button>
+      <button type="button" data-view="kanban"><b>▦</b><span>Dokumen</span></button>
       <button type="button" data-view="calendar"><b>▤</b><span>Kalender</span></button>
       <button type="button" data-view="whowhat"><b>☰</b><span>Who-What</span></button>
     </nav>
@@ -64,14 +67,15 @@
   <dialog id="taskDlg">
     <form id="taskForm" novalidate>
       <h2 id="taskDlgTitle">Task baru</h2>
-      <label>Apa<textarea name="apa" rows="3" maxlength="500" required></textarea></label>
+      <label>Kanban<select name="jenis" required></select></label>
+      <label><span id="lblApa">Apa</span><textarea name="apa" rows="3" maxlength="500" required></textarea></label>
       <div class="row2">
-        <label>Siapa<select name="siapa" required></select></label>
+        <label><span id="lblSiapa">Siapa</span><select name="siapa" required></select></label>
         <label>Prioritas<select name="prioritas" required></select></label>
       </div>
       <div class="row2">
-        <label>Mulai<input type="date" name="mulai" required></label>
-        <label>Selesai<input type="date" name="selesai" required></label>
+        <label><span id="lblMulai">Mulai</span><input type="date" name="mulai" required></label>
+        <label><span id="lblSelesai">Selesai</span><input type="date" name="selesai" required></label>
       </div>
       <label>Catatan<textarea name="catatan" rows="2" maxlength="1000"></textarea></label>
       <p class="msg" id="taskMsg" role="alert"></p>
@@ -99,7 +103,9 @@
   <dialog id="pdfDlg">
     <div class="detail">
       <h2>Export PDF</h2>
-      <button type="button" class="btn primary block" id="pdfAll"></button>
+      <button type="button" class="btn primary block" id="pdfPlan"></button>
+      <button type="button" class="btn primary block" id="pdfDoc"></button>
+      <button type="button" class="btn block" id="pdfAll"></button>
       <button type="button" class="btn block" id="pdfFiltered"></button>
       <p class="hint">Untuk satu kartu saja: buka kartunya, lalu tekan tombol <b>PDF</b>.</p>
       <div class="actions">

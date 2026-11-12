@@ -1,7 +1,16 @@
-// File ID: F12 | Revision: R2 — logika murni + helper DOM
+// File ID: F12 | Revision: R3 — logika murni + helper DOM
 
 export const STATUSES = ['OPEN', 'PROGRESS', 'SUBMIT', 'REVISI', 'CLOSED', 'REJECT'];
-export const ACTIVE = ['OPEN', 'PROGRESS', 'SUBMIT', 'REVISI'];
+export const PLAN_STATUSES = ['PLAN', 'READY', 'NOTE', 'DONE'];
+export const ALL_STATUSES = [...PLAN_STATUSES, ...STATUSES];
+export const ACTIVE = ['OPEN', 'PROGRESS', 'SUBMIT', 'REVISI', 'PLAN', 'READY', 'NOTE'];
+export const FINAL = ['CLOSED', 'REJECT', 'DONE'];
+// Dua kanban: DOC = tracking dokumen, PLAN = plan task pekerjaan
+export const JENIS_META = {
+  PLAN: { label: 'Plan Task', statuses: PLAN_STATUSES },
+  DOC: { label: 'Dokumen', statuses: STATUSES },
+};
+export const jenisOf = (t) => (t.jenis === 'PLAN' ? 'PLAN' : 'DOC');
 
 export const STATUS_META = {
   OPEN: { label: 'Open', color: '#64748b' },
@@ -10,6 +19,10 @@ export const STATUS_META = {
   REVISI: { label: 'Revisi', color: '#d97706' },
   CLOSED: { label: 'Closed', color: '#16a34a' },
   REJECT: { label: 'Reject', color: '#dc2626' },
+  PLAN: { label: 'Plan Task', short: 'Plan', color: '#475569' },
+  READY: { label: 'Plan Task Ready', short: 'Plan Ready', color: '#0891b2' },
+  NOTE: { label: 'Plan Task With Note', short: 'Plan Note', color: '#d97706' },
+  DONE: { label: 'Plan Task Closed', short: 'Plan Closed', color: '#16a34a' },
 };
 
 export const PRIORITIES = ['URGENT', 'HIGH', 'NORMAL'];
@@ -29,6 +42,10 @@ export const TRANSITIONS = {
   REVISI: ['PROGRESS'],
   CLOSED: ['OPEN'],
   REJECT: ['OPEN'],
+  PLAN: ['READY', 'NOTE'],
+  READY: ['DONE', 'NOTE', 'PLAN'],
+  NOTE: ['READY', 'DONE', 'PLAN'],
+  DONE: ['PLAN'],
 };
 
 export const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -65,8 +82,8 @@ export function monthGrid(year, month) {
   return cells;
 }
 
-export function filterTasks(tasks, { siapa = '', status = '', prioritas = '' } = {}) {
-  return tasks.filter((t) => (!siapa || t.siapa === siapa) && (!status || t.status === status) && (!prioritas || prioOf(t) === prioritas));
+export function filterTasks(tasks, { siapa = '', status = '', prioritas = '', jenis = '' } = {}) {
+  return tasks.filter((t) => (!siapa || t.siapa === siapa) && (!status || t.status === status) && (!prioritas || prioOf(t) === prioritas) && (!jenis || jenisOf(t) === jenis));
 }
 
 /** Helper DOM aman: teks selalu via text node (anti-XSS), style via CSSOM (lolos CSP). */
@@ -88,7 +105,7 @@ export function el(tag, props = {}, ...kids) {
 }
 
 export const pill = (status) =>
-  el('span', { class: 'pill', style: { '--c': STATUS_META[status]?.color || '#64748b' } }, STATUS_META[status]?.label || status);
+  el('span', { class: 'pill', style: { '--c': STATUS_META[status]?.color || '#64748b' } }, STATUS_META[status]?.short || STATUS_META[status]?.label || status);
 
 /** Flag prioritas. Normal tidak ditampilkan kecuali always = true. */
 export function prioFlag(t, always = false) {

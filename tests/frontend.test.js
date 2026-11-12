@@ -110,3 +110,26 @@ test('PDF: teks aman (WinAnsi) & wrap', () => {
   assert.ok(wrap('satu dua tiga empat lima enam', 10, false, 40).length > 1);
   assert.equal(wrap('x '.repeat(200), 10, false, 40, 2).length, 2);
 });
+
+import { jenisOf, PLAN_STATUSES, ALL_STATUSES } from '../js/util.js';
+
+test('kanban plan: jenis default DOC, filter jenis, aktif/overdue, transisi', () => {
+  const plan = mk({ id: 'p', jenis: 'PLAN', status: 'NOTE', catatan: 'tunggu material' });
+  const doc = mk({ id: 'd' });
+  assert.equal(jenisOf(doc), 'DOC');
+  assert.equal(jenisOf(plan), 'PLAN');
+  assert.deepEqual(filterTasks([plan, doc], { jenis: 'PLAN' }).map((t) => t.id), ['p']);
+  assert.deepEqual(filterTasks([plan, doc], { jenis: 'DOC' }).map((t) => t.id), ['d']);
+  assert.ok(isOverdue(plan, '2026-03-01'));
+  assert.ok(!isOverdue({ ...plan, status: 'DONE' }, '2026-03-01'));
+  assert.ok(canMove('PLAN', 'READY') && canMove('READY', 'DONE') && canMove('NOTE', 'READY') && canMove('DONE', 'PLAN'));
+  assert.ok(!canMove('PLAN', 'DONE') && !canMove('PLAN', 'PROGRESS') && !canMove('OPEN', 'READY'));
+  assert.equal(ALL_STATUSES.length, PLAN_STATUSES.length + 6);
+});
+
+test('PDF: gabungan plan + dokumen, catatan With Note ikut tercetak', () => {
+  const s = checkPdf(buildListPdf([mk({ id: 'p', jenis: 'PLAN', status: 'NOTE', catatan: 'tunggu material' }), mk({ id: 'd' })], { today: '2026-02-01' }));
+  assert.ok(s.includes('KANBAN PLAN TASK') && s.includes('KANBAN TRACKING DOKUMEN'));
+  assert.ok(s.includes('Catatan: tunggu material'));
+  assert.ok(checkPdf(buildTaskPdf(mk({ jenis: 'PLAN', status: 'READY' }), { today: '2026-02-01' })).includes('Kartu plan task'));
+});

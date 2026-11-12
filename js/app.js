@@ -1,6 +1,6 @@
-// File ID: F02 | Revision: R2 — controller utama
+// File ID: F02 | Revision: R3 — controller utama
 import { api, session, clearSession, cachedTasks, cachedUsers, apiConfigured } from './api.js';
-import { STATUSES, STATUS_META, TRANSITIONS, ACTIVE, todayWIB, canEdit, canMove, isOverdue, fmtRange, filterTasks, el, pill, PRIORITIES, PRIORITY_META, prioOf, prioFlag } from './util.js';
+import { STATUSES, STATUS_META, TRANSITIONS, ACTIVE, todayWIB, canEdit, canMove, isOverdue, fmtRange, filterTasks, el, pill, PRIORITIES, PRIORITY_META, prioOf, prioFlag, PLAN_STATUSES, ALL_STATUSES, FINAL, JENIS_META, jenisOf } from './util.js';
 import { buildListPdf, buildTaskPdf, savePdf } from './pdf.js';
 import { renderKanban } from './kanban.js';
 import { renderCalendar } from './calendar.js';
@@ -13,8 +13,8 @@ const S = {
   tasks: [],
   users: [],
   today: todayWIB(),
-  view: localStorage.getItem('tm_view') || 'kanban',
-  f: { siapa: '', status: '', prio: '', all: false },
+  view: localStorage.getItem('tm_view') || 'plan',
+  f: { siapa: '', status: '', prio: '', jenis: '', note: localStorage.getItem('tm_note') === '1', all: false },
   offline: !navigator.onLine,
   current: null,
   editing: null,
@@ -138,7 +138,11 @@ async function refresh(force = false) {
   }
 }
 
-const activeFilter = () => ({ siapa: S.f.siapa, prioritas: S.f.prio, status: S.view === 'calendar' ? S.f.status : '' });
+// Tab 'plan' = kanban Plan Task, 'kanban' = kanban Dokumen; Kalender & Who-What memuat keduanya (bisa difilter).
+const mixed = () => S.view === 'calendar' || S.view === 'whowhat';
+const viewJenis = () => (S.view === 'plan' ? 'PLAN' : S.view === 'kanban' ? 'DOC' : S.f.jenis);
+const statusOptions = () => (S.f.jenis ? JENIS_META[S.f.jenis].statuses : ALL_STATUSES);
+const activeFilter = () => ({ siapa: S.f.siapa, prioritas: S.f.prio, jenis: viewJenis(), status: mixed() ? S.f.status : '' });
 const visibleTasks = () => filterTasks(S.tasks, activeFilter());
 
 function render() {
@@ -153,7 +157,14 @@ function render() {
   fillSelect(fs, names.map((n) => [n, n === S.me ? `${n} (saya)` : n]), 'Semua orang');
   fs.value = names.includes(keep) ? keep : '';
   S.f.siapa = fs.value;
-  $('fStatus').hidden = S.view !== 'calendar';
+  const so = statusOptions();
+  fillSelect($('fStatus'), so.map((s) => [s, STATUS_META[s].label]), 'Semua status');
+  if (!so.includes(S.f.status)) S.f.status = '';
+  $('fStatus').value = S.f.status;
+  $('fStatus').hidden = !mixed();
+  $('fJenis').hidden = !mixed();
+  $('fNoteWrap').hidden = S.view !== 'kanban';
+  $('fNote').checked = S.f.note;
   $('fAllWrap').hidden = S.view !== 'whowhat';
 
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === S.view));
@@ -167,9 +178,14 @@ function render() {
   };
   const root = $('view');
   root.dataset.view = S.view;
-  if (S.view === 'calendar') renderCalendar(root, ctx);
+  if (S.view === 'calendar') renderCalendar(root, { ...ctx, statuses: so });
   else if (S.view === 'whowhat') renderWhoWhat(root, { ...ctx, users: S.f.siapa ? [S.f.siapa] : S.users, showAll: S.f.all });
-  else renderKanban(root, ctx);
+  else if (S.view === 'plan') renderKanban(root, { ...ctx, statuses: PLAN_STATUSES });
+  else {
+    // kanban dokumen; opsional menampilkan Plan Task With Note sebagai kolom tamu
+    const extra = S.f.note ? [{ status: 'NOTE', tasks: filterTasks(S.tasks, { siapa: S.f.siapa, prioritas: S.f.prio, jenis: 'PLAN', status: 'NOTE' }) }] : [];
+    renderKanban(root, { ...ctx, statuses: STATUSES, extra });
+  }
 }
 
 /* ---------------- detail & transisi ---------------- */
@@ -178,14 +194,16 @@ function openDetail(t) {
   S.current = t;
   const mine = canEdit(t, S.me);
   const over = isOverdue(t, S.today);
+  const plan = jenisOf(t) === 'PLAN';
   $('detailBody').replaceChildren(
     ...[
     el('h2', {}, t.apa),
     el('div', { class: 'dl' },
+      el('span', {}, 'Kanban'), el('span', {}, plan ? 'Plan Task' : 'Tracking Dokumen'),
       el('span', {}, 'Status'), el('span', {}, pill(t.status), over ? el('span', { class: 'tag red' }, 'OVERDUE') : null),
       el('span', {}, 'Prioritas'), el('span', {}, prioFlag(t, true)),
-      el('span', {}, 'Siapa'), el('span', {}, t.siapa),
-      el('span', {}, 'Kapan'), el('span', {}, fmtRange(t.mulai, t.selesai)),
+      el('span', {}, plan ? 'PIC' : 'Siapa'), el('span', {}, t.siapa),
+      el('span', {}, plan ? 'Plan' : 'Kapan'), el('span', {}, fmtRange(t.mulai, t.selesai)),
       el('span', {}, 'Catatan'), el('span', { class: 'pre' }, t.catatan || '-'),
       el('span', {}, 'Dibuat'), el('span', {}, t.created_by),
     ),
@@ -196,12 +214,13 @@ function openDetail(t) {
   const next = TRANSITIONS[t.status] || [];
   $('noteWrap').hidden = !can || !next.length;
   $('moveNote').value = '';
+  $('moveNote').placeholder = plan ? 'wajib diisi untuk Plan Task With Note' : 'mis. alasan revisi / reject';
   $('detailMsg').textContent = '';
   $('moveBtns').replaceChildren(
     ...(can
       ? next.map((to) =>
           el('button', { type: 'button', class: 'btn move', style: { '--c': STATUS_META[to].color }, onclick: (e) => doMove(t, to, $('moveNote').value, e.currentTarget) },
-            t.status === 'CLOSED' || t.status === 'REJECT' ? 'Reopen → Open' : `→ ${STATUS_META[to].label}`),
+            FINAL.includes(t.status) ? `Reopen → ${STATUS_META[to].label}` : `→ ${STATUS_META[to].label}`),
         )
       : []),
   );
@@ -211,6 +230,12 @@ function openDetail(t) {
 
 async function doMove(t, to, note, btn) {
   if (!canMove(t.status, to)) return toast(`Transisi ${t.status} → ${to} tidak diizinkan`, true);
+  if (to === 'NOTE' && !String(note || '').trim()) {
+    if (!$('detailDlg').open) openDetail(t);
+    $('detailMsg').textContent = 'Isi catatan dulu untuk memindahkan ke Plan Task With Note';
+    $('moveNote').focus();
+    return;
+  }
   setBusy(btn, true);
   try {
     await api.move(t.id, t.version, to, note);
@@ -233,6 +258,15 @@ function moveFromDrag(t, to) {
 
 /* ---------------- form create / edit ---------------- */
 
+function formLabels(jenis) {
+  const p = jenis === 'PLAN';
+  $('lblApa').textContent = p ? 'Pekerjaan' : 'Apa (dokumen)';
+  $('lblSiapa').textContent = p ? 'PIC' : 'Siapa';
+  $('lblMulai').textContent = p ? 'Plan Start' : 'Mulai';
+  $('lblSelesai').textContent = p ? 'Plan Finish' : 'Selesai';
+  $('taskDlgTitle').textContent = `${S.editing ? 'Edit' : 'Tambah'} ${p ? 'plan task' : 'task dokumen'}`;
+}
+
 function openForm(t = null) {
   S.editing = t;
   const f = $('taskForm');
@@ -240,7 +274,10 @@ function openForm(t = null) {
   const users = [...S.users];
   if (t && !users.includes(t.siapa)) users.push(t.siapa);
   fillSelect(f.siapa, users.map((u) => [u, u]));
-  $('taskDlgTitle').textContent = t ? 'Edit task' : 'Task baru';
+  fillSelect(f.jenis, [['PLAN', 'Plan Task (pekerjaan)'], ['DOC', 'Tracking Dokumen']]);
+  f.jenis.value = t ? jenisOf(t) : S.view === 'kanban' ? 'DOC' : S.view === 'plan' ? 'PLAN' : S.f.jenis || 'PLAN';
+  f.jenis.disabled = !!t; // jenis kanban tidak bisa diubah setelah dibuat
+  formLabels(f.jenis.value);
   f.apa.value = t ? t.apa : '';
   f.siapa.value = t ? t.siapa : S.me;
   fillSelect(f.prioritas, PRIORITIES.map((p) => [p, PRIORITY_META[p].label]));
@@ -257,6 +294,7 @@ async function onSaveTask(e) {
   e.preventDefault();
   const f = $('taskForm');
   const task = {
+    jenis: f.jenis.value,
     apa: f.apa.value.trim(),
     siapa: f.siapa.value,
     prioritas: f.prioritas.value,
@@ -264,13 +302,16 @@ async function onSaveTask(e) {
     selesai: f.selesai.value,
     catatan: f.catatan.value.trim(),
   };
-  if (!task.apa) return ($('taskMsg').textContent = 'Apa wajib diisi');
+  if (!task.apa) return ($('taskMsg').textContent = task.jenis === 'PLAN' ? 'Pekerjaan wajib diisi' : 'Apa wajib diisi');
   if (task.selesai < task.mulai) return ($('taskMsg').textContent = 'Tanggal selesai tidak boleh sebelum tanggal mulai');
   const btn = $('taskSave');
   setBusy(btn, true);
   try {
     if (S.editing) await api.update(S.editing.id, S.editing.version, task);
-    else await api.create(task);
+    else {
+      const made = await api.create(task);
+      if (task.jenis === 'PLAN' && made && made.jenis !== 'PLAN') toast('Server masih versi lama: tempel ulang Code.gs lalu deploy New version', true);
+    }
     closeDialogs();
     toast(S.editing ? 'Task diperbarui' : 'Task dibuat');
     await refresh(true);
@@ -299,12 +340,19 @@ async function exportPdf(build, name) {
 function openPdfDlg() {
   const f = activeFilter();
   const shown = visibleTasks();
-  const parts = [f.siapa, f.prioritas && PRIORITY_META[f.prioritas].label, f.status && STATUS_META[f.status].label].filter(Boolean);
-  $('pdfAll').textContent = `Semua task (${S.tasks.length})`;
+  const plan = filterTasks(S.tasks, { jenis: 'PLAN' });
+  const docs = filterTasks(S.tasks, { jenis: 'DOC' });
+  const parts = [mixed() && f.jenis && 'Kanban ' + JENIS_META[f.jenis].label, f.siapa, f.prioritas && PRIORITY_META[f.prioritas].label, f.status && STATUS_META[f.status].label].filter(Boolean);
+  const list = (tasks, subtitle, name) => () => exportPdf(() => buildListPdf(tasks, { today: S.today, subtitle }), `${name}-${S.today}.pdf`);
+  $('pdfPlan').textContent = `Kanban Plan Task (${plan.length})`;
+  $('pdfDoc').textContent = `Kanban Dokumen (${docs.length})`;
+  $('pdfAll').textContent = `Semua: Plan Task + Dokumen (${S.tasks.length})`;
   $('pdfFiltered').textContent = `Sesuai filter: ${parts.join(', ')} (${shown.length})`;
   $('pdfFiltered').hidden = !parts.length;
-  $('pdfAll').onclick = () => exportPdf(() => buildListPdf(S.tasks, { today: S.today, subtitle: 'Semua task' }), `task-monitoring-${S.today}.pdf`);
-  $('pdfFiltered').onclick = () => exportPdf(() => buildListPdf(shown, { today: S.today, subtitle: 'Filter: ' + parts.join(', ') }), `task-monitoring-${slug(parts.join('-'))}-${S.today}.pdf`);
+  $('pdfPlan').onclick = list(plan, 'Kanban Plan Task', 'plan-task');
+  $('pdfDoc').onclick = list(docs, 'Kanban Tracking Dokumen', 'tracking-dokumen');
+  $('pdfAll').onclick = list(S.tasks, 'Semua task', 'task-monitoring');
+  $('pdfFiltered').onclick = list(shown, 'Filter: ' + parts.join(', '), 'task-' + slug(parts.join('-')));
   $('pdfDlg').showModal();
 }
 
@@ -338,7 +386,10 @@ function bind() {
       render();
     }),
   );
-  fillSelect($('fStatus'), STATUSES.map((s) => [s, STATUS_META[s].label]), 'Semua status');
+  fillSelect($('fJenis'), [['PLAN', 'Kanban Plan Task'], ['DOC', 'Kanban Dokumen']], 'Semua kanban');
+  $('fJenis').addEventListener('change', (e) => { S.f.jenis = e.target.value; render(); });
+  $('fNote').addEventListener('change', (e) => { S.f.note = e.target.checked; localStorage.setItem('tm_note', S.f.note ? '1' : '0'); render(); });
+  $('taskForm').jenis.addEventListener('change', (e) => formLabels(e.target.value));
   $('fSiapa').addEventListener('change', (e) => { S.f.siapa = e.target.value; render(); });
   fillSelect($('fPrio'), PRIORITIES.map((p) => [p, PRIORITY_META[p].label]), 'Semua prioritas');
   $('fPrio').addEventListener('change', (e) => { S.f.prio = e.target.value; render(); });

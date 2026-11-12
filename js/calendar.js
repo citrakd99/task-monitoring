@@ -7,7 +7,7 @@ let cur = null; // { y, m }
 let sel = null; // 'YYYY-MM-DD'
 
 export function renderCalendar(root, ctx) {
-  const { tasks, today, me, onOpen } = ctx;
+  const { tasks, today, me, onOpen, statuses = STATUSES } = ctx;
   if (!cur) {
     cur = { y: Number(today.slice(0, 4)), m: Number(today.slice(5, 7)) - 1 };
     sel = today;
@@ -32,7 +32,7 @@ export function renderCalendar(root, ctx) {
     el('button', { type: 'button', class: 'btn small', onclick: () => { cur = null; rerender(); } }, 'Hari ini'),
   );
 
-  const legend = el('div', { class: 'legend' }, ...STATUSES.map((s) => el('span', { style: { '--c': STATUS_META[s].color } }, STATUS_META[s].label)));
+  const legend = el('div', { class: 'legend' }, ...statuses.map((s) => el('span', { style: { '--c': STATUS_META[s].color } }, STATUS_META[s].short || STATUS_META[s].label)));
 
   const grid = el('div', { class: 'cal-grid' }, ...DOW.map((d) => el('div', { class: 'cal-dow' }, d)));
   monthGrid(cur.y, cur.m).forEach((c, i) => {
@@ -62,7 +62,7 @@ export function renderCalendar(root, ctx) {
     'div',
     { class: 'cal-day' },
     el('h3', {}, `Task ${fmtDate(sel)} (${dayTasks.length})`),
-    dayTasks.length ? dayTasks.map((t) => card(t, today, me, onOpen)) : el('p', { class: 'empty' }, 'Tidak ada task di tanggal ini'),
+    dayTasks.length ? dayTasks.map((t) => card(t, today, me, onOpen, false, true)) : el('p', { class: 'empty' }, 'Tidak ada task di tanggal ini'),
   );
 
   root.replaceChildren(head, legend, grid, day);
