@@ -1,4 +1,4 @@
-/* File ID: F09 | Revision: R5 */
+/* File ID: F09 | Revision: R6 */
 :root {
   --bg: #f1f5f9;
   --card: #ffffff;
@@ -222,3 +222,36 @@ body.arsip main { background: repeating-linear-gradient(135deg, transparent 0 14
 .col-h .col-act { margin-left: auto; margin-right: .4rem; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: .1rem .55rem; font-size: .7rem; font-weight: 700; color: var(--mute); cursor: pointer; white-space: nowrap; }
 .col-h .col-act:hover { color: var(--ink); border-color: var(--mute); }
 .actions { flex-wrap: wrap; }
+
+/* ---------- panduan ---------- */
+a.icon-btn { display: inline-grid; place-items: center; text-decoration: none; font-weight: 700; font-size: 1.1rem; }
+a.install-btn, a.btn { text-decoration: none; display: inline-block; }
+.login-help { margin: .9rem 0 0; font-size: .85rem; }
+.login-help a { color: var(--brand2); }
+.guide { max-width: 1040px; margin: 0 auto; padding: 1rem; display: grid; gap: 1rem; }
+.guide-toc { display: grid; gap: .15rem; background: #fff; border: 1px solid var(--line); border-radius: var(--r); padding: .8rem 1rem; align-content: start; }
+.guide-toc strong { margin-bottom: .3rem; }
+.guide-toc a { color: var(--brand2); text-decoration: none; font-size: .9rem; padding: .25rem 0; }
+.guide-toc a:hover { text-decoration: underline; }
+.guide-body { padding: 0; display: grid; gap: 1rem; }
+.guide-body section { background: #fff; border: 1px solid var(--line); border-radius: var(--r); padding: 1rem 1.1rem; scroll-margin-top: 64px; line-height: 1.55; font-size: .93rem; }
+.guide-body h2 { font-size: 1.1rem; color: var(--brand); margin-bottom: .5rem; }
+.guide-body h3 { font-size: .95rem; margin: .9rem 0 .3rem; }
+.guide-body p { margin: .5rem 0; }
+.guide-body ol, .guide-body ul { margin: .4rem 0; padding-left: 1.25rem; display: grid; gap: .3rem; }
+.guide-body dt { font-weight: 700; margin-top: .7rem; }
+.guide-body dd { margin: .15rem 0 0; color: #334155; }
+.guide-body code { background: var(--bg); padding: .05rem .3rem; border-radius: 4px; font-size: .85em; }
+.kbd { display: inline-block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 0 .4rem; font-size: .82em; font-weight: 700; white-space: nowrap; }
+.guide-note { background: #eff6ff; border-left: 4px solid var(--brand2); border-radius: 6px; padding: .5rem .7rem; font-size: .88rem; }
+.guide-flow { background: var(--bg); border-radius: 8px; padding: .6rem .7rem; font-size: .85rem; line-height: 2; }
+.guide-flow span { display: inline-block; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 0 .6rem; font-weight: 700; line-height: 1.6; }
+.guide-flow span.warn { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+.guide-flow span.bad { border-color: #fecaca; background: #fef2f2; color: var(--red); }
+.guide-table { width: 100%; border-collapse: collapse; font-size: .88rem; margin: .4rem 0; }
+.guide-table th, .guide-table td { border: 1px solid var(--line); padding: .4rem .55rem; text-align: left; vertical-align: top; }
+.guide-table th { background: #f8fafc; }
+@media (min-width: 900px) {
+  .guide { grid-template-columns: 250px minmax(0, 1fr); align-items: start; padding: 1.4rem; }
+  .guide-toc { position: sticky; top: 72px; }
+}

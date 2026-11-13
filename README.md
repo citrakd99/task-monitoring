@@ -22,6 +22,7 @@ Panduan pasang & pakai: **[CARA_PAKAI.md](CARA_PAKAI.md)**
 | F11 | `CARA_PAKAI.md` | Panduan |
 | F12 | `js/util.js` | Logika murni + helper DOM aman |
 | F13 | `js/config.js` | URL API |
+| F15 | `panduan.html` | Halaman panduan pemakaian (dibuka dari tombol ? di aplikasi) |
 | F14 | `js/pdf.js` | Export PDF (semua / sesuai filter / per kartu), tanpa library |
 | — | `tools/dev-server.js` | Server preview lokal dengan data demo |
 

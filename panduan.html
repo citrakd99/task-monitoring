@@ -1,0 +1,189 @@
+<!doctype html>
+<!-- File ID: F15 | Revision: R1 — halaman panduan pemakaian -->
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'none'; manifest-src 'self'">
+  <title>Panduan — Task MonitorinG</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="guide-page">
+  <header class="topbar">
+    <h1>Panduan Task MonitorinG</h1>
+    <div class="topbar-r">
+      <a class="install-btn" href="./">← Kembali ke aplikasi</a>
+    </div>
+  </header>
+
+  <div class="guide">
+    <nav class="guide-toc" aria-label="Daftar isi">
+      <strong>Daftar isi</strong>
+      <a href="#mulai">1. Mulai: masuk &amp; pasang aplikasi</a>
+      <a href="#layar">2. Mengenal layar</a>
+      <a href="#mode">3. Mode Tim dan Pribadi</a>
+      <a href="#plan">4. Kanban Plan Task</a>
+      <a href="#dokumen">5. Kanban Dokumen</a>
+      <a href="#prioritas">6. Prioritas &amp; overdue</a>
+      <a href="#kalender">7. Kalender</a>
+      <a href="#whowhat">8. Who-What</a>
+      <a href="#pdf">9. Export PDF</a>
+      <a href="#arsip">10. Arsip</a>
+      <a href="#offline">11. Offline &amp; muat ulang</a>
+      <a href="#tanya">12. Pertanyaan umum</a>
+    </nav>
+
+    <main class="guide-body">
+      <section id="mulai">
+        <h2>1. Mulai: masuk &amp; pasang aplikasi</h2>
+        <ol>
+          <li>Buka aplikasinya, pilih <b>Nama</b> Anda, ketik <b>PIN</b>, lalu tekan <b>Masuk</b>. Nama dan PIN dibuat oleh admin.</li>
+          <li>Sesi login berlaku 12 jam. Setelah itu aplikasi meminta PIN lagi.</li>
+          <li>Salah PIN 5 kali akan mengunci login selama 15 menit.</li>
+        </ol>
+        <h3>Pasang sebagai aplikasi</h3>
+        <ul>
+          <li><b>HP Android (Chrome):</b> ketuk <span class="kbd">⋮</span> → <b>Tambahkan ke layar utama / Instal aplikasi</b>.</li>
+          <li><b>iPhone / iPad (Safari):</b> ketuk tombol <b>Bagikan</b> → <b>Tambahkan ke Layar Utama</b>.</li>
+          <li><b>Laptop (Chrome / Edge):</b> klik ikon pasang di ujung kanan kolom alamat, atau tombol <span class="kbd">⤓ Pasang</span> di kanan atas aplikasi.</li>
+        </ul>
+        <p class="guide-note">Setelah terpasang, aplikasi punya ikon sendiri dan tetap bisa dibuka saat sinyal hilang (hanya baca).</p>
+      </section>
+
+      <section id="layar">
+        <h2>2. Mengenal layar</h2>
+        <table class="guide-table">
+          <tr><th>Bagian</th><th>Fungsi</th></tr>
+          <tr><td>Menu tab</td><td><b>Plan Task</b>, <b>Dokumen</b>, <b>Kalender</b>, <b>Who-What</b>. Di HP ada di bawah, di tablet/laptop ada di sisi kiri.</td></tr>
+          <tr><td>Baris filter</td><td>Tombol mode <span class="kbd">👥 Tim</span> / <span class="kbd">🔒 Pribadi</span>, tombol <span class="kbd">📦 Arsip</span>, lalu filter orang/PIC, prioritas, kanban, dan status.</td></tr>
+          <tr><td>Tombol <span class="kbd">+</span></td><td>Menambah task baru (kanan bawah).</td></tr>
+          <tr><td>Kanan atas</td><td><span class="kbd">PDF</span> export, <span class="kbd">?</span> panduan ini, <span class="kbd">⟳</span> muat ulang data, <span class="kbd">⏻</span> keluar.</td></tr>
+        </table>
+        <p>Ketuk kartu mana pun untuk membuka <b>detail</b>: di sana ada tombol pindah status, Edit, PDF, dan Arsipkan.</p>
+      </section>
+
+      <section id="mode">
+        <h2>3. Mode Tim dan Pribadi</h2>
+        <table class="guide-table">
+          <tr><th></th><th>👥 Tim</th><th>🔒 Pribadi</th></tr>
+          <tr><td>Siapa yang melihat</td><td>Semua anggota tim</td><td>Hanya Anda</td></tr>
+          <tr><td>PIC / Siapa</td><td>Dipilih dari daftar user</td><td>Diketik sendiri (mandor, vendor, dll.)</td></tr>
+          <tr><td>Siapa yang bisa mengubah</td><td>Pelaksana (PIC) atau pembuat task</td><td>Hanya Anda</td></tr>
+        </table>
+        <p>Di mode Pribadi, bilah atas berubah <b>hijau</b> dan bertuliskan “· Pribadi” supaya tidak tertukar. Task yang dibuat mengikuti mode yang sedang aktif, dan tidak bisa dipindah ke mode lain.</p>
+        <p class="guide-note">Di mode Tim, kartu milik orang lain bertanda <span class="kbd">🔒 lihat saja</span>: Anda bisa membukanya tetapi tidak bisa mengubahnya.</p>
+      </section>
+
+      <section id="plan">
+        <h2>4. Kanban Plan Task</h2>
+        <p>Untuk memantau <b>pekerjaan</b>. Isi tiap kartu: <b>Pekerjaan</b>, <b>PIC</b>, <b>Plan Start – Plan Finish</b>, prioritas, dan catatan.</p>
+        <p class="guide-flow"><span>Plan Task</span> → <span>Plan Task Ready</span> → <span>Plan Task Closed</span><br>dari Plan / Ready bisa ke <span class="warn">Plan Task With Note</span></p>
+        <ol>
+          <li>Buka tab <b>Plan Task</b>, tekan <span class="kbd">+</span>, isi pekerjaan, PIC, dan tanggal, lalu <b>Simpan</b>. Kartu masuk ke kolom <b>Plan Task</b>.</li>
+          <li>Untuk memindahkan: buka kartu lalu tekan tombol status tujuan. Di laptop, kartu bisa <b>diseret</b> ke kolom lain.</li>
+          <li><b>Plan Task With Note</b> dipakai bila ada kendala/keterangan. Catatan <b>wajib diisi</b>, dan tampil langsung di kartu.</li>
+          <li>Dari <b>Plan Task Closed</b>, kartu bisa di-<b>Reopen</b> kembali ke Plan Task.</li>
+        </ol>
+      </section>
+
+      <section id="dokumen">
+        <h2>5. Kanban Dokumen</h2>
+        <p>Untuk <b>tracking dokumen</b>.</p>
+        <p class="guide-flow"><span>Open</span> → <span>Progress</span> → <span>Submit</span> → <span>Closed</span><br>Submit bisa ke <span class="warn">Revisi</span> (lalu kembali ke Progress) atau <span class="bad">Reject</span></p>
+        <ul>
+          <li>Tambah lewat <span class="kbd">+</span> di tab <b>Dokumen</b>. Pindah status sama seperti Plan Task.</li>
+          <li>Kolom “Catatan perubahan” di detail bersifat opsional, misalnya alasan revisi atau reject.</li>
+          <li>Centang <b>Tampilkan Plan Task With Note</b> untuk memunculkan plan task ber-catatan sebagai kolom tambahan di kiri. Kolom itu hanya untuk dilihat dan dibuka.</li>
+          <li>Task yang sudah Closed/Reject tidak bisa diedit; <b>Reopen</b> dulu.</li>
+        </ul>
+      </section>
+
+      <section id="prioritas">
+        <h2>6. Prioritas &amp; overdue</h2>
+        <ul>
+          <li>Pilih <b>Urgent</b>, <b>High Priority</b>, atau <b>Normal</b> di form task.</li>
+          <li>Urgent dan High diberi tanda <span class="kbd">⚑</span> dan otomatis naik ke atas kolom.</li>
+          <li>Task yang melewati tanggal selesai dan belum closed ditandai merah <b>OVERDUE</b>.</li>
+          <li>Dropdown <b>Semua prioritas</b> di baris filter berlaku di semua tab.</li>
+        </ul>
+      </section>
+
+      <section id="kalender">
+        <h2>7. Kalender</h2>
+        <ul>
+          <li>Tiap task tampil sebagai garis berwarna dari tanggal mulai sampai selesai; warna = status.</li>
+          <li>Ketuk tanggal untuk melihat daftar task hari itu (di laptop tampil di sisi kanan).</li>
+          <li>Pilih <b>Kanban Plan Task</b> atau <b>Kanban Dokumen</b> di dropdown kanban untuk menampilkan salah satu saja, lalu saring lagi per status.</li>
+          <li><span class="kbd">‹</span> <span class="kbd">›</span> pindah bulan, <b>Hari ini</b> kembali ke bulan berjalan.</li>
+        </ul>
+      </section>
+
+      <section id="whowhat">
+        <h2>8. Who-What</h2>
+        <ul>
+          <li>Daftar task per orang/PIC, diurutkan dari yang paling banyak overdue.</li>
+          <li>Secara bawaan hanya task aktif; centang <b>Tampilkan semua</b> untuk menyertakan yang sudah closed.</li>
+          <li>Filter kanban, status, dan prioritas juga berlaku di sini.</li>
+          <li>Tombol <span class="kbd">PDF</span> di samping nama mengekspor task orang/PIC itu saja.</li>
+        </ul>
+      </section>
+
+      <section id="pdf">
+        <h2>9. Export PDF</h2>
+        <table class="guide-table">
+          <tr><th>Kebutuhan</th><th>Caranya</th></tr>
+          <tr><td>Semua task satu kanban</td><td>Tombol <span class="kbd">PDF</span> kanan atas → <b>Kanban Plan Task</b> atau <b>Kanban Dokumen</b></td></tr>
+          <tr><td>Gabungan keduanya</td><td><span class="kbd">PDF</span> → <b>Semua: Plan Task + Dokumen</b></td></tr>
+          <tr><td>Sesuai filter</td><td>Atur filter dulu, lalu <span class="kbd">PDF</span> → <b>Sesuai filter</b></td></tr>
+          <tr><td>Satu kartu</td><td>Buka kartunya → <span class="kbd">PDF</span></td></tr>
+          <tr><td>Satu PIC</td><td>Tab Who-What → <span class="kbd">PDF</span> di samping nama</td></tr>
+        </table>
+        <p class="guide-note">PDF mengikuti mode yang aktif (Tim atau Pribadi) dan tampilan Arsip. Di iPhone/iPad, PDF muncul lewat lembar Bagikan.</p>
+      </section>
+
+      <section id="arsip">
+        <h2>10. Arsip</h2>
+        <p>Supaya task yang sudah selesai tidak menumpuk di papan. Arsip <b>tidak menghapus</b> data.</p>
+        <ol>
+          <li><b>Satu kartu:</b> buka kartu yang sudah Closed / Reject / Plan Task Closed → <span class="kbd">📦 Arsipkan</span>.</li>
+          <li><b>Satu kolom:</b> tekan <span class="kbd">📦 Arsipkan</span> di judul kolom. Di mode Tim hanya task milik atau buatan Anda yang ikut.</li>
+          <li><b>Melihat arsip:</b> tekan <span class="kbd">📦 Arsip (n)</span> di baris filter. Tekan lagi untuk kembali ke papan.</li>
+          <li><b>Membuka kembali:</b> di tampilan Arsip, buka kartunya → <span class="kbd">↩ Keluarkan dari arsip</span> (kembali ke kolom Closed) atau <b>Reopen</b> (aktif lagi).</li>
+        </ol>
+      </section>
+
+      <section id="offline">
+        <h2>11. Offline &amp; muat ulang</h2>
+        <ul>
+          <li>Tanpa sinyal, aplikasi menampilkan data terakhir dengan pita kuning <b>OFFLINE</b>. Data tidak bisa diubah sampai sinyal kembali.</li>
+          <li>Data dimuat ulang otomatis saat aplikasi dibuka kembali; tekan <span class="kbd">⟳</span> untuk memuat sekarang.</li>
+          <li>Jika muncul “Task sudah diubah orang lain”, data dimuat ulang otomatis. Ulangi perubahan Anda.</li>
+        </ul>
+      </section>
+
+      <section id="tanya">
+        <h2>12. Pertanyaan umum</h2>
+        <dl>
+          <dt>Lupa PIN?</dt>
+          <dd>Minta admin mereset lewat menu <b>Task MonitorinG → Tambah user / reset PIN</b> di spreadsheet.</dd>
+          <dt>Nama saya tidak ada di daftar login?</dt>
+          <dd>Admin belum menambahkan Anda, atau akun Anda dinonaktifkan.</dd>
+          <dt>Kenapa saya tidak bisa memindahkan kartu?</dt>
+          <dd>Di mode Tim hanya PIC atau pembuat task yang bisa mengubah. Urutan status juga harus sesuai alur (misalnya Plan Task tidak bisa langsung Closed).</dd>
+          <dt>Tampilan tidak berubah setelah ada pembaruan?</dt>
+          <dd>Tutup aplikasi sepenuhnya lalu buka lagi sekali atau dua kali.</dd>
+          <dt>Muncul “Server masih versi lama” atau “Action tidak dikenal”?</dt>
+          <dd>Admin perlu memperbarui <code>Code.gs</code> di Google Apps Script dan deploy <i>New version</i>.</dd>
+        </dl>
+        <p class="guide-note">Admin: langkah pemasangan database dan pengelolaan user ada di berkas <code>CARA_PAKAI.md</code> pada repositori aplikasi.</p>
+      </section>
+
+      <p><a class="btn primary" href="./">← Kembali ke aplikasi</a></p>
+    </main>
+  </div>
+</body>
+</html>
